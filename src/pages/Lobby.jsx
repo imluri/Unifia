@@ -147,6 +147,20 @@ function HostTab() {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
+      {/* Room descriptor — the shared room everyone converges on. */}
+      {hosting && session?.room && (
+        <div className="rounded border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-neutral-400">Room code:</span>
+            <span className="font-mono font-semibold text-neutral-100">{session.room.roomCode}</span>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">
+            Players who join land in this room on your hosted server (
+            {session.room.serverIP}:{session.room.port}). Launch the game to connect.
+          </p>
+        </div>
+      )}
+
       <div>
         <h4 className="mb-2 text-sm font-semibold text-neutral-300">Players</h4>
         <PlayerList players={players} />
@@ -162,6 +176,7 @@ function JoinTab() {
   const versionMismatch = useAppStore((s) => s.versionMismatch);
   const joinSession = useAppStore((s) => s.joinSession);
   const stopSession = useAppStore((s) => s.stopSession);
+  const launchGame = useAppStore((s) => s.launchGame);
 
   const [gameId, setGameId] = useState('');
   const [address, setAddress] = useState('');
@@ -219,6 +234,14 @@ function JoinTab() {
             Disconnect
           </button>
         )}
+        {connected && (
+          <button
+            onClick={() => launchGame(gameId)}
+            className="rounded bg-neutral-700 px-4 py-2 text-sm hover:bg-neutral-600"
+          >
+            Launch Game
+          </button>
+        )}
         <label className="flex items-center gap-2 text-sm text-neutral-300">
           <input type="checkbox" checked={ready} onChange={(e) => setReady(e.target.checked)} />
           Ready
@@ -235,6 +258,13 @@ function JoinTab() {
           {!result.versionMatch && (
             <p className="mt-1 text-xs text-red-400">
               Versions differ — multiplayer may not work until both sides match.
+            </p>
+          )}
+          {result.room && (
+            <p className="mt-2 text-xs text-neutral-400">
+              Joining room <span className="font-mono text-neutral-200">{result.room.roomCode}</span>{' '}
+              on <span className="font-mono">{result.room.serverIP}:{result.room.port}</span>. Launch
+              the game to connect.
             </p>
           )}
         </div>
@@ -277,7 +307,13 @@ export default function Lobby() {
           </button>
         ))}
       </div>
-      {tab === 'host' ? <HostTab /> : <JoinTab />}
+      {/* Keep both tabs mounted so switching doesn't reset their inputs. */}
+      <div className={tab === 'host' ? '' : 'hidden'}>
+        <HostTab />
+      </div>
+      <div className={tab === 'join' ? '' : 'hidden'}>
+        <JoinTab />
+      </div>
     </div>
   );
 }

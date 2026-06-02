@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { store } = require('../store');
 const { moduleDir } = require('../paths');
+const patcher = require('./patcher');
 
 // Tracks the currently spawned game process so we can detect "already running"
 // and kill on request. Keyed by gameId.
@@ -62,6 +63,21 @@ function launchGame(gameId, { args = [] } = {}) {
   }
 
   const deployed = deployModule(game);
+
+  // If the lobby brokered a room, write unifia_net.cfg so the in-game mod joins
+  // the host's self-hosted Photon server and shared room. Non-fatal on failure
+  // (the game still launches; it just won't auto-join the unifia room).
+  const profile = (store.get('gameProfiles') || {})[game.id];
+  if (profile && profile.netConfig) {
+    try {
+      patcher.writeNetConfig(game.installPath, {
+        ...profile.netConfig,
+        username: store.get('settings.username') || 'Player',
+      });
+    } catch {
+      /* mod will fall back to its defaults */
+    }
+  }
 
   const child = spawn(game.executablePath, args, {
     cwd: game.installPath,

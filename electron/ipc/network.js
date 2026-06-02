@@ -11,6 +11,14 @@ const { store } = require('../store');
 // to the renderer (player-joined, player-left, version-mismatch).
 
 const PING_INTERVAL = 3000;
+// Default port of the host's self-hosted Photon server (game traffic). This is
+// separate from the lobby's TCP coordination port (default 7777).
+const PHOTON_DEFAULT_PORT = 5055;
+
+// Short, shareable room identifier, e.g. "unifia_7F3K".
+function makeRoomCode() {
+  return 'unifia_' + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
 
 function getLocalIP() {
   const ifaces = os.networkInterfaces();
@@ -49,6 +57,14 @@ function createNetwork(emit) {
     };
   }
 
+  // Stash the brokered room descriptor in the game's profile so the launcher
+  // can write unifia_net.cfg from it before launch.
+  function persistNetConfig(gameId, descriptor) {
+    const profiles = store.get('gameProfiles') || {};
+    profiles[gameId] = { ...(profiles[gameId] || {}), netConfig: descriptor };
+    store.set('gameProfiles', profiles);
+  }
+
   // --- Host mode -----------------------------------------------------------
   function hostSession(gameId, port = 7777) {
     if (server) stopHost();
@@ -56,6 +72,18 @@ function createNetwork(emit) {
     const identity = selfIdentity(gameId);
     const players = new Map(); // id -> { id, name, ping, socket }
     let nextId = 1;
+
+    // Mint the room descriptor clients will converge on: the host's self-hosted
+    // Photon server address + a shared room code + the agreed AppId. The host
+    // persists it for its own launch too.
+    const descriptor = {
+      serverIP: getLocalIP(),
+      port: PHOTON_DEFAULT_PORT,
+      appId: (store.get('settings.photonAppId') || '').trim() || 'unifia-local',
+      roomCode: makeRoomCode(),
+      version: identity.version,
+    };
+    persistNetConfig(gameId, descriptor);
 
     // Add the host itself as the first player entry.
     const hostId = 'host';
@@ -98,6 +126,7 @@ function createNetwork(emit) {
               type: 'welcome',
               gameId: identity.gameId,
               hostVersion: identity.version,
+              room: descriptor,
               players: serializePlayers(players),
             });
             emit('player-joined', { id, name: msg.username || id, ping: 0 });
@@ -128,8 +157,8 @@ function createNetwork(emit) {
     return new Promise((resolve, reject) => {
       server.once('error', reject);
       server.listen(port, () => {
-        hostState = { port, gameId: identity.gameId, version: identity.version, players };
-        resolve({ hosting: true, ip: getLocalIP(), port, gameId: identity.gameId });
+        hostState = { port, gameId: identity.gameId, version: identity.version, players, descriptor };
+        resolve({ hosting: true, ip: getLocalIP(), port, gameId: identity.gameId, room: descriptor });
       });
     });
   }
@@ -187,6 +216,9 @@ function createNetwork(emit) {
 
           if (msg.type === 'welcome') {
             clientState.players = msg.players || [];
+            // Persist the host's room descriptor so our launcher writes the same
+            // unifia_net.cfg and we land in the host's server + room.
+            if (msg.room) persistNetConfig(gameId, msg.room);
             if (!settled) {
               settled = true;
               const match = msg.hostVersion === identity.version;
@@ -197,6 +229,7 @@ function createNetwork(emit) {
                 hostVersion: msg.hostVersion,
                 clientVersion: identity.version,
                 versionMatch: match,
+                room: msg.room || null,
                 players: clientState.players,
               });
             }
