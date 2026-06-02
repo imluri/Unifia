@@ -21,7 +21,9 @@ export default function StatusBar() {
     <footer className="flex items-center justify-between border-t border-white/5 bg-sidebar px-4 py-1.5 text-xs text-neutral-400">
       <span className="flex items-center gap-2">
         <span
-          className={`h-2 w-2 rounded-full ${session ? 'bg-green-500' : 'bg-neutral-600'}`}
+          className={`h-2 w-2 rounded-full ${
+            session ? 'status-pulse bg-green-500' : 'bg-neutral-600'
+          }`}
         />
         {connection}
       </span>

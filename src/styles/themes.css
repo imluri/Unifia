@@ -1,0 +1,52 @@
+/*
+ * Theme tokens. Colors are stored as space-separated RGB channel triples (not
+ * hex) so Tailwind's alpha modifiers work: a token consumed as
+ * `rgb(var(--surface) / <alpha-value>)` supports `bg-surface/60` etc.
+ *
+ * The active theme is selected by a `data-theme` attribute on <html>, set from
+ * settings.theme. `:root` mirrors the Mono defaults so the very first paint
+ * (before JS runs) already looks right.
+ */
+
+:root,
+[data-theme='mono'] {
+  --bg-primary: 0 0 0;
+  --bg-secondary: 10 10 10;
+  --bg-tertiary: 17 17 17;
+  --surface: 26 26 26;
+  --surface-hover: 34 34 34;
+  --border-subtle: 31 31 31;
+  --border-default: 42 42 42;
+  --border-strong: 58 58 58;
+  --text-primary: 255 255 255;
+  --text-secondary: 136 136 136;
+  --text-muted: 68 68 68;
+  --accent: 255 255 255;
+  --accent-contrast: 0 0 0; /* readable text/icon color on an accent fill */
+  --status-green: 34 197 94;
+  --status-yellow: 234 179 8;
+  --status-red: 239 68 68;
+  --radius: 4px;
+  --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+}
+
+[data-theme='slate'] {
+  --bg-primary: 15 15 19;
+  --bg-secondary: 19 19 26;
+  --bg-tertiary: 24 24 31;
+  --surface: 30 30 40;
+  --surface-hover: 37 37 47;
+  --border-subtle: 42 42 56;
+  --border-default: 50 50 63;
+  --border-strong: 62 62 82;
+  --text-primary: 232 232 240;
+  --text-secondary: 120 120 160;
+  --text-muted: 64 64 88;
+  --accent: 59 130 246;
+  --accent-contrast: 255 255 255;
+  --status-green: 34 197 94;
+  --status-yellow: 234 179 8;
+  --status-red: 239 68 68;
+  --radius: 6px;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}

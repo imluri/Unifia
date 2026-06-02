@@ -1,5 +1,5 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 
 const { store } = require('./store');
 const { ensureLayout, getDataDir } = require('./paths');
@@ -7,6 +7,7 @@ const gameScanner = require('./ipc/gameScanner');
 const launcher = require('./ipc/launcher');
 const patcher = require('./ipc/patcher');
 const moduleManager = require('./ipc/moduleManager');
+const artManager = require('./ipc/artManager');
 const { createNetwork } = require('./ipc/network');
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -74,8 +75,37 @@ function handle(channel, fn) {
 }
 
 function registerIpc() {
+  // --- Native file/folder pickers ---
+  handle('unifia:pickExecutable', async () => {
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select game executable',
+      properties: ['openFile'],
+      filters:
+        process.platform === 'win32'
+          ? [
+              { name: 'Executables', extensions: ['exe'] },
+              { name: 'All files', extensions: ['*'] },
+            ]
+          : [{ name: 'All files', extensions: ['*'] }],
+    });
+    if (res.canceled || !res.filePaths[0]) return null;
+    const filePath = res.filePaths[0];
+    // The parent folder name is usually the game's name — offer it as a default.
+    return { path: filePath, suggestedName: path.basename(path.dirname(filePath)) };
+  });
+  handle('unifia:pickDirectory', async () => {
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select folder',
+      properties: ['openDirectory'],
+    });
+    if (res.canceled || !res.filePaths[0]) return null;
+    return { path: res.filePaths[0] };
+  });
+
   // --- Games ---
   handle('unifia:scanGames', () => gameScanner.scanGames());
+  handle('unifia:scanSteamGames', () => gameScanner.scanSteamGames());
+  handle('unifia:getSteamLibraries', () => gameScanner.getSteamLibraries());
   handle('unifia:addManualGame', (game) => gameScanner.addManualGame(game));
   handle('unifia:removeGame', (gameId) => gameScanner.removeGame(gameId));
 
@@ -102,6 +132,13 @@ function registerIpc() {
   handle('unifia:setActiveModule', (gameId, moduleName, version) =>
     moduleManager.setActiveModule(gameId, moduleName, version)
   );
+
+  // --- Game art (SteamGridDB / Steam CDN) ---
+  handle('unifia:fetchGameArt', (gameId, gameName, steamAppId) =>
+    artManager.fetchGameArt(gameId, gameName, steamAppId)
+  );
+  handle('unifia:clearArtCache', (gameId) => artManager.clearArtCache(gameId));
+  handle('unifia:testSteamGridKey', (key) => artManager.testKey(key));
 
   // --- Network / lobby ---
   handle('unifia:getLocalIP', () => network.getLocalIP());

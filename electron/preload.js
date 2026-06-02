@@ -31,8 +31,14 @@ function subscribe(name, cb) {
 }
 
 contextBridge.exposeInMainWorld('unifia', {
+  // Native pickers
+  pickExecutable: () => invoke('unifia:pickExecutable'),
+  pickDirectory: () => invoke('unifia:pickDirectory'),
+
   // Games
   scanGames: () => invoke('unifia:scanGames'),
+  scanSteamGames: () => invoke('unifia:scanSteamGames'),
+  getSteamLibraries: () => invoke('unifia:getSteamLibraries'),
   addManualGame: (game) => invoke('unifia:addManualGame', game),
   removeGame: (gameId) => invoke('unifia:removeGame', gameId),
 
@@ -51,6 +57,12 @@ contextBridge.exposeInMainWorld('unifia', {
   getInstalledModules: () => invoke('unifia:getInstalledModules'),
   setActiveModule: (gameId, moduleName, version) =>
     invoke('unifia:setActiveModule', gameId, moduleName, version),
+
+  // Game art
+  fetchGameArt: (gameId, gameName, steamAppId) =>
+    invoke('unifia:fetchGameArt', gameId, gameName, steamAppId),
+  clearArtCache: (gameId) => invoke('unifia:clearArtCache', gameId),
+  testSteamGridKey: (key) => invoke('unifia:testSteamGridKey', key),
 
   // Network / lobby
   getLocalIP: () => invoke('unifia:getLocalIP'),

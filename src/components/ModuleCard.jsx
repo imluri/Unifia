@@ -116,7 +116,7 @@ export default function ModuleCard({ moduleId, label }) {
         <button
           onClick={doInstall}
           disabled={!selected || !!installing}
-          className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-600 disabled:opacity-50"
+          className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
         >
           {isInstalled(selected) ? 'Installed ✓' : installing ? 'Installing…' : 'Install'}
         </button>

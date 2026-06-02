@@ -1,10 +1,8 @@
+@import './styles/themes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  color-scheme: dark;
-}
 
 html,
 body,
@@ -14,24 +12,181 @@ body,
 }
 
 body {
-  background-color: #0f0f0f;
-  color: #e5e7eb;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: rgb(var(--bg-primary));
+  color: rgb(var(--text-primary));
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Slim, dark scrollbars to match the app surface. */
+/* Slim scrollbars themed to the surface. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f0f0f;
+  background: rgb(var(--bg-primary));
 }
 ::-webkit-scrollbar-thumb {
-  background: #2f2f2f;
+  background: rgb(var(--border-default));
   border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f3f;
+  background: rgb(var(--border-strong));
+}
+
+/* ------------------------------------------------------------------ *
+ * Animations. Everything visual is gated behind prefers-reduced-motion
+ * so users who ask for less motion get an instant, static UI.
+ * Transform/opacity only — never animate layout (width/height/top/left).
+ * ------------------------------------------------------------------ */
+
+/* Keep text readable when it sits over banner artwork. */
+.text-legible {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Skeleton shimmer works regardless of motion preference but is subtle. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--surface)) 25%,
+    rgb(var(--surface-hover)) 50%,
+    rgb(var(--surface)) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes word-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes dot-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes nav-indicator-in {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes dl-complete-flash {
+    0% {
+      background-color: rgb(255 255 255);
+    }
+    100% {
+      background-color: rgb(var(--status-green));
+    }
+  }
+
+  /* Page transition: incoming view fades/slides in (250ms layout-shift feel). */
+  .page-in {
+    animation: page-in 200ms ease-out 60ms both;
+  }
+
+  /* Game cards stagger in; delay is applied inline as index * 40ms (cap 8). */
+  .card-mount {
+    animation: fade-in-up 200ms ease-out both;
+  }
+
+  /* Result banners (version match/mismatch) slide down from above. */
+  .slide-down {
+    animation: slide-down 200ms ease-out both;
+  }
+
+  .skeleton {
+    animation: shimmer 1.5s linear infinite;
+  }
+
+  /* Connection dot: slow pulse only while connected. */
+  .status-pulse {
+    animation: dot-pulse 2s ease-in-out infinite;
+  }
+
+  /* Active sidebar indicator slides in from the left edge. */
+  .nav-indicator {
+    transform-origin: left;
+    animation: nav-indicator-in 150ms ease-out both;
+  }
+
+  .dl-complete {
+    animation: dl-complete-flash 400ms ease-out forwards;
+  }
+
+  .word-fade {
+    animation: word-fade-in 600ms ease-out both;
+  }
+}
+
+/* Universal quick transitions for interactive elements. Color/transform/opacity
+ * are cheap to animate; this gives the whole UI a 150ms "instant" feel. */
+button,
+a,
+input,
+select {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease,
+    transform 150ms ease;
 }

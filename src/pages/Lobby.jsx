@@ -37,10 +37,22 @@ function HostTab() {
   const [port, setPort] = useState(7777);
   const [localIP, setLocalIP] = useState('…');
   const [error, setError] = useState(null);
+  const [revealIP, setRevealIP] = useState(false); // keep the IP hidden by default
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     window.unifia?.getLocalIP().then(setLocalIP).catch(() => setLocalIP('unknown'));
   }, []);
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(`${localIP}:${port}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard may be unavailable */
+    }
+  }
 
   const profile = gameProfiles[gameId];
   const hasModule = profile && profile.activeModule && profile.moduleVersion;
@@ -71,10 +83,31 @@ function HostTab() {
       </div>
 
       <div className="rounded bg-neutral-900/40 px-4 py-3 text-sm">
-        <span className="text-neutral-400">Your local IP: </span>
-        <span className="font-mono text-neutral-100">
-          {localIP}:{port}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-neutral-400">Your local IP:</span>
+          <span
+            className={`font-mono text-neutral-100 transition ${
+              revealIP ? '' : 'select-none blur-sm'
+            }`}
+          >
+            {localIP}:{port}
+          </span>
+          <button
+            onClick={() => setRevealIP((v) => !v)}
+            title={revealIP ? 'Hide IP' : 'Show IP'}
+            className="flex items-center rounded p-1 text-neutral-400 hover:bg-surface-hover hover:text-neutral-100"
+          >
+            <Icon name={revealIP ? 'eye-off' : 'eye'} size={15} />
+          </button>
+          <button
+            onClick={copyAddress}
+            title="Copy address"
+            className="flex items-center rounded p-1 text-neutral-400 hover:bg-surface-hover hover:text-neutral-100"
+          >
+            <Icon name="copy" size={15} />
+          </button>
+          {copied && <span className="text-xs text-green-400">Copied</span>}
+        </div>
         <p className="mt-1 text-xs text-neutral-500">Share this with friends so they can join.</p>
       </div>
 
@@ -90,7 +123,7 @@ function HostTab() {
           <button
             onClick={start}
             disabled={!gameId}
-            className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:opacity-50"
           >
             Start Hosting
           </button>
@@ -174,7 +207,7 @@ function JoinTab() {
           <button
             onClick={connect}
             disabled={!gameId || !address}
-            className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+            className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 disabled:opacity-50"
           >
             Connect
           </button>
@@ -194,7 +227,7 @@ function JoinTab() {
 
       {/* Version check result */}
       {result && (
-        <div className="rounded bg-neutral-900/40 px-4 py-3 text-sm">
+        <div className="slide-down rounded bg-neutral-900/40 px-4 py-3 text-sm">
           <span className="text-neutral-400">Version check: </span>
           <VersionBadge version={result.clientVersion} match={result.versionMatch} />
           <span className="mx-2 text-neutral-600">vs host</span>
@@ -208,7 +241,7 @@ function JoinTab() {
       )}
 
       {versionMismatch && (
-        <div className="rounded bg-red-900/40 px-4 py-2 text-sm text-red-300">
+        <div className="slide-down rounded bg-red-900/40 px-4 py-2 text-sm text-red-300">
           Version mismatch reported by host: host {versionMismatch.hostVersion}, you{' '}
           {versionMismatch.clientVersion}.
         </div>
@@ -235,7 +268,9 @@ export default function Lobby() {
             key={t}
             onClick={() => setTab(t)}
             className={`rounded px-4 py-1.5 text-sm font-medium capitalize transition ${
-              tab === t ? 'bg-accent text-white' : 'text-neutral-400 hover:text-neutral-200'
+              tab === t
+                ? 'bg-accent text-accent-contrast'
+                : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
             {t}

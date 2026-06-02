@@ -26,7 +26,19 @@ export const useAppStore = create((set, get) => ({
   // Download progress keyed by `${moduleName}@${version}`
   downloads: {},
 
+  // Resolved game art keyed by gameId: { banner, icon, hero }
+  art: {},
+
   // --- Bootstrap ---
+  // Called by the LoadingScreen once its sequenced steps have gathered data.
+  // Centralizes "we're live now": store the data, apply the theme, wire events.
+  hydrate(partial) {
+    set({ ...partial, ready: true });
+    if (partial.settings) applyTheme(partial.settings.theme);
+    get().wireEvents();
+  },
+
+  // Fallback full bootstrap (used if something renders before the loader runs).
   async init() {
     if (!api) {
       set({ error: 'Unifia bridge unavailable (run inside Electron).', ready: true });
@@ -41,9 +53,7 @@ export const useAppStore = create((set, get) => ({
         api.getGameProfiles(),
         api.getDataDir(),
       ]);
-      set({ settings, games, modules, moduleSources, gameProfiles, dataDir, ready: true });
-      applyTheme(settings?.theme || 'dark');
-      get().wireEvents();
+      get().hydrate({ settings, games, modules, moduleSources, gameProfiles, dataDir });
     } catch (err) {
       set({ error: err.message, ready: true });
     }
@@ -67,7 +77,11 @@ export const useAppStore = create((set, get) => ({
   // --- Games ---
   async rescan() {
     const games = await api.scanGames();
-    set({ games });
+    // Clear the in-memory art memo so cards re-resolve art on the next render.
+    // Games that previously had no art (e.g. before a SteamGridDB key was set)
+    // will now fetch from the API; already-cached art returns instantly from
+    // the main-process cache, so this stays cheap.
+    set({ games, art: {} });
   },
   async addManualGame(game) {
     await api.addManualGame(game);
@@ -132,6 +146,23 @@ export const useAppStore = create((set, get) => ({
     set({ players });
   },
 
+  // --- Game art ---
+  // Resolve art for a game (cached in main + memoized here). Returns the art
+  // object or null. Safe to call repeatedly; in-flight/known results are reused.
+  async fetchArt(game) {
+    if (!api || !game) return null;
+    const existing = get().art[game.id];
+    if (existing !== undefined) return existing;
+    try {
+      const art = await api.fetchGameArt(game.id, game.name, game.steamAppId);
+      set((s) => ({ art: { ...s.art, [game.id]: art } }));
+      return art;
+    } catch {
+      set((s) => ({ art: { ...s.art, [game.id]: null } }));
+      return null;
+    }
+  },
+
   // --- Launch ---
   async launchGame(gameId) {
     return api.launchGame(gameId);
@@ -141,11 +172,12 @@ export const useAppStore = create((set, get) => ({
   },
 }));
 
-// Toggle the `dark` class used by Tailwind's class-based dark mode.
+// Set the active theme by writing data-theme on <html>; themes.css keys all
+// CSS variables off this attribute. Unknown values fall back to Mono.
+const THEMES = ['mono', 'slate'];
 function applyTheme(theme) {
-  const root = document.documentElement;
-  if (theme === 'light') root.classList.remove('dark');
-  else root.classList.add('dark');
+  const next = THEMES.includes(theme) ? theme : 'mono';
+  document.documentElement.setAttribute('data-theme', next);
 }
 
-export { api };
+export { api, applyTheme };

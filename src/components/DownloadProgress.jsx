@@ -17,11 +17,16 @@ function fmtBytes(n) {
 export default function DownloadProgress({ progress }) {
   if (!progress) return null;
   const { percent = 0, bytesReceived = 0, totalBytes = 0 } = progress;
+  const complete = percent >= 100;
   return (
     <div className="mt-2">
       <div className="h-2 w-full overflow-hidden rounded bg-neutral-800">
+        {/* Width eases over 300ms; on completion it flashes white then settles
+            to green via the dl-complete keyframe. */}
         <div
-          className="h-full bg-accent transition-all duration-150"
+          className={`h-full transition-[width] duration-300 ease-out ${
+            complete ? 'dl-complete' : 'bg-accent'
+          }`}
           style={{ width: `${percent}%` }}
         />
       </div>

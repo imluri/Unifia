@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
+import logo from '../assets/unifia_logo.png';
 
 // Custom window chrome for the frameless BrowserWindow. The whole bar is a drag
 // region (-webkit-app-region: drag via the `drag` class) except the interactive
@@ -23,7 +24,7 @@ export default function TitleBar() {
       style={{ WebkitAppRegion: 'drag' }}
     >
       <div className="flex items-center gap-2 text-xs font-semibold tracking-tight text-neutral-300">
-        <span className="text-accent">●</span>
+        <img src={logo} alt="" className="h-4 w-4 rounded-sm" />
         <span>Unifia</span>
       </div>
 
