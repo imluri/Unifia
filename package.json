@@ -1,0 +1,62 @@
+{
+  "name": "unifia",
+  "version": "0.1.0",
+  "description": "Cross-store multiplayer game launcher — play with friends regardless of which store they bought the game on.",
+  "author": "Unifia Contributors",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c blue,green \"npm:dev:vite\" \"npm:dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "cross-env NODE_ENV=production electron .",
+    "dist": "vite build && electron-builder",
+    "lint": "echo \"No linter configured yet\" && exit 0"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "extract-zip": "^2.0.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1",
+    "wait-on": "^7.2.0",
+    "zustand": "^4.5.2"
+  },
+  "build": {
+    "appId": "dev.unifia.launcher",
+    "productName": "Unifia",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Game"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.games"
+    }
+  }
+}
