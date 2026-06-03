@@ -1,6 +1,7 @@
 const net = require('net');
 const os = require('os');
 const { store } = require('../store');
+const upnp = require('./upnp');
 
 // Lightweight lobby networking over raw TCP. The host opens a port and accepts
 // clients; each side exchanges a newline-delimited JSON handshake carrying the
@@ -66,7 +67,7 @@ function createNetwork(emit) {
   }
 
   // --- Host mode -----------------------------------------------------------
-  function hostSession(gameId, port = 7777) {
+  async function hostSession(gameId, port = 7777) {
     if (server) stopHost();
 
     const identity = selfIdentity(gameId);
@@ -74,8 +75,7 @@ function createNetwork(emit) {
     let nextId = 1;
 
     // Mint the room descriptor clients will converge on: the host's self-hosted
-    // Photon server address + a shared room code + the agreed AppId. The host
-    // persists it for its own launch too.
+    // Photon server address + a shared room code + the agreed AppId.
     const descriptor = {
       serverIP: getLocalIP(),
       port: PHOTON_DEFAULT_PORT,
@@ -83,7 +83,6 @@ function createNetwork(emit) {
       roomCode: makeRoomCode(),
       version: identity.version,
     };
-    persistNetConfig(gameId, descriptor);
 
     // Add the host itself as the first player entry.
     const hostId = 'host';
@@ -154,13 +153,34 @@ function createNetwork(emit) {
       socket.on('error', cleanup);
     });
 
-    return new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       server.once('error', reject);
-      server.listen(port, () => {
-        hostState = { port, gameId: identity.gameId, version: identity.version, players, descriptor };
-        resolve({ hosting: true, ip: getLocalIP(), port, gameId: identity.gameId, room: descriptor });
-      });
+      server.listen(port, resolve);
     });
+    hostState = { port, gameId: identity.gameId, version: identity.version, players, descriptor };
+
+    // Best-effort UPnP: open the Photon (UDP) and lobby (TCP) ports so the
+    // host's IP is reachable over the internet without manual port-forwarding.
+    let upnpResult = null;
+    try {
+      upnpResult = await upnp.openHostPorts({ photonPort: descriptor.port, lobbyPort: port });
+      if (upnpResult && upnpResult.externalIp) descriptor.publicIP = upnpResult.externalIp;
+    } catch {
+      /* host can still port-forward manually */
+    }
+    hostState.upnp = upnpResult;
+
+    // Persist now (descriptor may have gained publicIP) for the launcher to use.
+    persistNetConfig(identity.gameId, descriptor);
+
+    return {
+      hosting: true,
+      ip: getLocalIP(),
+      port,
+      gameId: identity.gameId,
+      room: descriptor,
+      upnp: upnpResult,
+    };
   }
 
   function serializePlayers(players) {
@@ -176,6 +196,12 @@ function createNetwork(emit) {
 
   function stopHost() {
     if (hostState) {
+      // Release the UPnP mappings we opened (fire-and-forget).
+      if (hostState.upnp && hostState.upnp.available) {
+        upnp
+          .closeHostPorts({ photonPort: hostState.descriptor.port, lobbyPort: hostState.port })
+          .catch(() => {});
+      }
       for (const p of hostState.players.values()) {
         if (p.socket) p.socket.destroy();
       }

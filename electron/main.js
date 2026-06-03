@@ -8,6 +8,8 @@ const launcher = require('./ipc/launcher');
 const patcher = require('./ipc/patcher');
 const moduleManager = require('./ipc/moduleManager');
 const artManager = require('./ipc/artManager');
+const profiles = require('./ipc/profiles');
+const upnp = require('./ipc/upnp');
 const { createNetwork } = require('./ipc/network');
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -114,6 +116,11 @@ function registerIpc() {
   handle('unifia:killGame', (gameId) => launcher.killGame(gameId));
   handle('unifia:isGameRunning', (gameId) => launcher.isRunning(gameId));
   handle('unifia:patchGame', (gameId, config) => patcher.patchGame(gameId, config || {}));
+  handle('unifia:getNetProfile', (gameId) => {
+    const game = (store.get('games') || []).find((g) => g.id === gameId);
+    if (!game) throw new Error(`Unknown game: ${gameId}`);
+    return profiles.matchProfile(game);
+  });
 
   // --- Modules ---
   handle('unifia:listModuleSources', () => moduleManager.listModuleSources());
@@ -189,4 +196,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('before-quit', () => network.stopSession());
+app.on('before-quit', () => {
+  network.stopSession();
+  upnp.shutdown();
+});

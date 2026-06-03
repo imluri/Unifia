@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generic BepInEx (Unity Mono) plugin that repoints a PUN2 game at a Unifia
+    host's self-hosted Photon server and joins the shared room.
+
+    Build prerequisites:
+      1. Copy these DLLs from the target game's <Game>_Data/Managed folder into
+         a sibling `libs/` directory next to this .csproj:
+           UnityEngine.dll, UnityEngine.CoreModule.dll,
+           PhotonUnityNetworking.dll, PhotonRealtime.dll, Photon3Unity3D.dll
+         (Older PUN builds may name these differently — match what the game ships.)
+      2. dotnet build -c Release
+      3. Drop the produced Unifia.Pun.dll into the game's BepInEx/plugins folder
+         (Unifia's module manager will automate this once packaged).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>Unifia.Pun</AssemblyName>
+    <Product>Unifia PUN Connector</Product>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Game DLLs are provided by the game at runtime; never copy them out. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      BepInEx 5 (Unity Mono) core + HarmonyX for the optional advanced hook.
+      BepInEx.Core comes from the BepInEx NuGet feed configured in NuGet.config
+      (it is NOT on nuget.org). HarmonyX is on nuget.org.
+
+      Offline / no-feed alternative: delete these two PackageReferences and
+      instead <Reference> BepInEx.dll and 0Harmony.dll from the game's
+      BepInEx/core/ folder, copied into libs/ (same as the game DLLs below).
+    -->
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="HarmonyX" Version="2.10.1" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference assemblies copied from the game's Managed folder (see header). -->
+    <Reference Include="UnityEngine">
+      <HintPath>libs\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>libs\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Modern Unity splits these out of UnityEngine.dll into their own modules. -->
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>libs\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>libs\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonUnityNetworking">
+      <HintPath>libs\PhotonUnityNetworking.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonRealtime">
+      <HintPath>libs\PhotonRealtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Photon3Unity3D">
+      <HintPath>libs\Photon3Unity3D.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    Convenience deploy: `dotnet build -c Release -p:GameDir="C:\...\REPO"` drops
+    the built DLL straight into the game's BepInEx/plugins folder for fast iteration.
+  -->
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(GameDir)' != ''">
+    <MakeDir Directories="$(GameDir)\BepInEx\plugins" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins" />
+    <Message Importance="high" Text="Deployed $(TargetFileName) to $(GameDir)\BepInEx\plugins" />
+  </Target>
+
+</Project>

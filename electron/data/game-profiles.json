@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "_comment": "Registry of per-game network profiles. The launcher matches a game (by steamAppId or namePattern) and writes the resolved profile to the game as unifia_profile.json for the BepInEx mod. Adding a typical PUN game is a config entry here — no code. See mod/profiles/schema.json.",
+  "default": {
+    "netcode": "pun2",
+    "hookStrategy": "manual",
+    "autoDelaySeconds": 3,
+    "supportsNativeLobby": false,
+    "module": "bepinex_mono"
+  },
+  "games": [
+    {
+      "match": { "namePattern": "^R\\.?E\\.?P\\.?O\\.?$|\\bREPO\\b" },
+      "profile": {
+        "game": "REPO",
+        "netcode": "pun2",
+        "hookStrategy": "manual",
+        "autoDelaySeconds": 3,
+        "supportsNativeLobby": false,
+        "module": "bepinex_mono"
+      }
+    }
+  ]
+}

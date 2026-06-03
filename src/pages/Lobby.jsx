@@ -158,6 +158,29 @@ function HostTab() {
             Players who join land in this room on your hosted server (
             {session.room.serverIP}:{session.room.port}). Launch the game to connect.
           </p>
+
+          {/* Port-forward (UPnP) status for internet play. */}
+          {session.upnp && (
+            <div className="mt-2 text-xs">
+              {session.upnp.available && session.upnp.photon?.ok ? (
+                <p className="text-green-400">
+                  ✓ Ports auto-forwarded via UPnP (UDP {session.room.port}, TCP {session.port}).
+                </p>
+              ) : (
+                <p className="text-yellow-500">
+                  ⚠ Couldn&apos;t auto-forward ports. LAN play works as-is; for internet play, forward
+                  UDP {session.room.port} and TCP {session.port} on your router.
+                </p>
+              )}
+              {session.room.publicIP && (
+                <p className="mt-1 text-neutral-400">
+                  Public IP:{' '}
+                  <span className="font-mono text-neutral-200">{session.room.publicIP}</span>{' '}
+                  <span className="text-neutral-600">(share for internet play)</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

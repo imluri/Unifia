@@ -1,0 +1,8 @@
+{
+  "game": "REPO",
+  "netcode": "pun2",
+  "hookStrategy": "manual",
+  "autoDelaySeconds": 3,
+  "supportsNativeLobby": false,
+  "module": "bepinex_mono"
+}

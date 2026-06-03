@@ -51,6 +51,15 @@ function verifyNetConfig(installPath, descriptor) {
   return { ok: true, path: cfgPath };
 }
 
+// Write the per-game behavior profile the BepInEx mod reads (unifia_profile.json).
+const PROFILE_CONFIG_REL = 'BepInEx/config/unifia_profile.json';
+function writeProfileConfig(installPath, profile) {
+  const p = path.join(installPath, PROFILE_CONFIG_REL);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, JSON.stringify(profile || {}, null, 2), 'utf8');
+  return p;
+}
+
 // IPC entry: resolve the descriptor for a game (explicit arg, else the one the
 // lobby stashed in its profile), inject the local username, write + verify, and
 // persist it back to the profile.
@@ -171,4 +180,5 @@ module.exports = {
   writeNetConfig,
   verifyNetConfig,
   applyNetConfig,
+  writeProfileConfig,
 };

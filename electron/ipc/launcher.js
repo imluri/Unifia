@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const { store } = require('../store');
 const { moduleDir } = require('../paths');
 const patcher = require('./patcher');
+const profiles = require('./profiles');
 
 // Tracks the currently spawned game process so we can detect "already running"
 // and kill on request. Keyed by gameId.
@@ -64,9 +65,15 @@ function launchGame(gameId, { args = [] } = {}) {
 
   const deployed = deployModule(game);
 
-  // If the lobby brokered a room, write unifia_net.cfg so the in-game mod joins
-  // the host's self-hosted Photon server and shared room. Non-fatal on failure
-  // (the game still launches; it just won't auto-join the unifia room).
+  // Tell the in-game mod how to behave for this game (unifia_profile.json), and
+  // — if the lobby brokered a room — write the room descriptor (unifia_net.cfg)
+  // so it joins the host's self-hosted Photon server. Both are non-fatal: the
+  // game still launches if either write fails.
+  try {
+    patcher.writeProfileConfig(game.installPath, profiles.matchProfile(game));
+  } catch {
+    /* mod will use its built-in defaults */
+  }
   const profile = (store.get('gameProfiles') || {})[game.id];
   if (profile && profile.netConfig) {
     try {

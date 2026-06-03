@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unifia game profile",
+  "description": "Per-game behavior consumed by the launcher and written to the game as unifia_profile.json for the in-game mod.",
+  "type": "object",
+  "properties": {
+    "game": {
+      "type": "string",
+      "description": "Human-readable game name."
+    },
+    "netcode": {
+      "type": "string",
+      "description": "Which netcode stack the game uses, selecting the right plugin family.",
+      "enum": ["pun2", "pun1", "mirror", "fishnet", "ngo", "steamworks", "unknown"],
+      "default": "pun2"
+    },
+    "hookStrategy": {
+      "type": "string",
+      "description": "When the mod injects its repoint. 'manual' = hotkey; 'auto-on-load' = after a delay; 'reconnect-on-load' = wrap the game's own connect call (Harmony, game-specific).",
+      "enum": ["manual", "auto-on-load", "reconnect-on-load"],
+      "default": "manual"
+    },
+    "autoDelaySeconds": {
+      "type": "number",
+      "description": "Delay before auto activation when hookStrategy is 'auto-on-load'.",
+      "default": 3
+    },
+    "supportsNativeLobby": {
+      "type": "boolean",
+      "description": "Whether the game exposes a public room/region browser the mod can inject into (Level A). When false, players auto-join by room code (Level B).",
+      "default": false
+    },
+    "connectHookType": {
+      "type": "string",
+      "description": "For hookStrategy 'reconnect-on-load': fully-qualified type name whose method the mod patches (Harmony) to trigger activation."
+    },
+    "connectHookMethod": {
+      "type": "string",
+      "description": "For hookStrategy 'reconnect-on-load': method name on connectHookType to patch."
+    },
+    "module": {
+      "type": "string",
+      "description": "Which loader module this game needs.",
+      "enum": ["bepinex_mono", "bepinex_il2cpp"],
+      "default": "bepinex_mono"
+    }
+  },
+  "required": ["netcode", "hookStrategy"],
+  "additionalProperties": true
+}

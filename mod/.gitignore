@@ -1,0 +1,11 @@
+# .NET build output
+bin/
+obj/
+
+# Game-provided reference assemblies (proprietary — never commit)
+UnifiaPun/libs/*.dll
+
+# Visual Studio
+.vs/
+*.user
+*.suo

@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('unifia', {
   killGame: (gameId) => invoke('unifia:killGame', gameId),
   isGameRunning: (gameId) => invoke('unifia:isGameRunning', gameId),
   patchGame: (gameId, config) => invoke('unifia:patchGame', gameId, config),
+  getNetProfile: (gameId) => invoke('unifia:getNetProfile', gameId),
 
   // Modules
   listModuleSources: () => invoke('unifia:listModuleSources'),
