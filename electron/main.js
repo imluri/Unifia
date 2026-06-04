@@ -9,6 +9,7 @@ const patcher = require('./ipc/patcher');
 const moduleManager = require('./ipc/moduleManager');
 const artManager = require('./ipc/artManager');
 const profiles = require('./ipc/profiles');
+const pluginManager = require('./ipc/pluginManager');
 const upnp = require('./ipc/upnp');
 const { createNetwork } = require('./ipc/network');
 
@@ -121,6 +122,11 @@ function registerIpc() {
     if (!game) throw new Error(`Unknown game: ${gameId}`);
     return profiles.matchProfile(game);
   });
+
+  // --- Unifia connector plugin (per-game) ---
+  handle('unifia:getPluginStatus', (gameId) => pluginManager.getPluginStatus(gameId));
+  handle('unifia:installPlugin', (gameId) => pluginManager.installPlugin(gameId));
+  handle('unifia:uninstallPlugin', (gameId) => pluginManager.uninstallPlugin(gameId));
 
   // --- Modules ---
   handle('unifia:listModuleSources', () => moduleManager.listModuleSources());

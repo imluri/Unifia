@@ -15,8 +15,13 @@ namespace Unifia.Pun
         public string RoomCode;
         public string Username;
         public string Version;
+        public string Region;                       // Photon Cloud region for cloud-region mode
+        public string ConnectionMode = "cloud-region"; // cloud-region | self-hosted
 
-        public bool HasRoom => !string.IsNullOrEmpty(ServerIP) && !string.IsNullOrEmpty(RoomCode);
+        // cloud-region only needs a room code; self-hosted also needs a server IP.
+        public bool HasRoom =>
+            !string.IsNullOrEmpty(RoomCode) &&
+            (ConnectionMode != "self-hosted" || !string.IsNullOrEmpty(ServerIP));
     }
 
     // Per-game behavior, written by the launcher to unifia_profile.json from its
@@ -68,6 +73,8 @@ namespace Unifia.Pun
                     case "RoomCode": net.RoomCode = val; break;
                     case "Username": net.Username = val; break;
                     case "Version": net.Version = val; break;
+                    case "Region": net.Region = val; break;
+                    case "ConnectionMode": net.ConnectionMode = val; break;
                 }
             }
             return net;

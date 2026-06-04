@@ -67,20 +67,38 @@ namespace Unifia.Pun
             }
 
             _activating = true;
-            UnifiaPlugin.Log.LogInfo($"Activating Unifia connection to {_net.ServerIP}:{_net.Port}…");
+            var mode = string.IsNullOrEmpty(_net.ConnectionMode) ? "cloud-region" : _net.ConnectionMode;
+            UnifiaPlugin.Log.LogInfo($"Activating Unifia ({mode}) → room '{_net.RoomCode}'…");
 
             if (PhotonNetwork.IsConnected)
                 PhotonNetwork.Disconnect();
 
             var app = PhotonNetwork.PhotonServerSettings.AppSettings;
-            app.Server = _net.ServerIP;       // host's self-hosted Photon Server
-            app.Port = _net.Port;             // default 5055
-            app.UseNameServer = false;        // bypass Photon Cloud's name server
-            app.FixedRegion = "";             // not used when name server is off
-            if (!string.IsNullOrEmpty(_net.AppId)) app.AppIdRealtime = _net.AppId;
+            // Only swap the AppId for a real one — never clobber the game's own
+            // Photon Cloud AppId with the self-hosted placeholder in cloud mode.
+            bool overrideAppId = !string.IsNullOrEmpty(_net.AppId) && _net.AppId != "unifia-local";
+
+            if (mode == "self-hosted")
+            {
+                // Point straight at the host's self-hosted Photon server.
+                app.UseNameServer = false;
+                app.Server = _net.ServerIP;
+                app.Port = _net.Port;
+                app.FixedRegion = "";
+                if (!string.IsNullOrEmpty(_net.AppId)) app.AppIdRealtime = _net.AppId;
+            }
+            else
+            {
+                // Stay on Photon Cloud but pin everyone to one region + room so
+                // cross-store players converge. Keep the game's own AppId.
+                app.UseNameServer = true;
+                app.Server = "";
+                app.FixedRegion = string.IsNullOrEmpty(_net.Region) ? "" : _net.Region;
+                if (overrideAppId) app.AppIdRealtime = _net.AppId;
+            }
 
             if (!string.IsNullOrEmpty(_net.Username)) PhotonNetwork.NickName = _net.Username;
-            // Match version segregation across players (host writes the same value).
+            // Force a shared game version so Photon doesn't segregate by AppVersion.
             if (!string.IsNullOrEmpty(_net.Version)) PhotonNetwork.GameVersion = _net.Version;
 
             PhotonNetwork.ConnectUsingSettings();

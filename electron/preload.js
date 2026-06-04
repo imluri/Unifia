@@ -49,6 +49,11 @@ contextBridge.exposeInMainWorld('unifia', {
   patchGame: (gameId, config) => invoke('unifia:patchGame', gameId, config),
   getNetProfile: (gameId) => invoke('unifia:getNetProfile', gameId),
 
+  // Unifia connector plugin (per-game)
+  getPluginStatus: (gameId) => invoke('unifia:getPluginStatus', gameId),
+  installPlugin: (gameId) => invoke('unifia:installPlugin', gameId),
+  uninstallPlugin: (gameId) => invoke('unifia:uninstallPlugin', gameId),
+
   // Modules
   listModuleSources: () => invoke('unifia:listModuleSources'),
   fetchModuleVersions: (moduleName, opts) => invoke('unifia:fetchModuleVersions', moduleName, opts),

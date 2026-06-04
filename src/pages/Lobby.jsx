@@ -154,32 +154,42 @@ function HostTab() {
             <span className="text-neutral-400">Room code:</span>
             <span className="font-mono font-semibold text-neutral-100">{session.room.roomCode}</span>
           </div>
-          <p className="mt-1 text-xs text-neutral-500">
-            Players who join land in this room on your hosted server (
-            {session.room.serverIP}:{session.room.port}). Launch the game to connect.
-          </p>
 
-          {/* Port-forward (UPnP) status for internet play. */}
-          {session.upnp && (
-            <div className="mt-2 text-xs">
-              {session.upnp.available && session.upnp.photon?.ok ? (
-                <p className="text-green-400">
-                  ✓ Ports auto-forwarded via UPnP (UDP {session.room.port}, TCP {session.port}).
-                </p>
-              ) : (
-                <p className="text-yellow-500">
-                  ⚠ Couldn&apos;t auto-forward ports. LAN play works as-is; for internet play, forward
-                  UDP {session.room.port} and TCP {session.port} on your router.
-                </p>
+          {session.room.connectionMode === 'self-hosted' ? (
+            <>
+              <p className="mt-1 text-xs text-neutral-500">
+                Players join this room on your hosted server ({session.room.serverIP}:
+                {session.room.port}). Launch the game to connect.
+              </p>
+              {/* Port-forward (UPnP) status for internet play. */}
+              {session.upnp && (
+                <div className="mt-2 text-xs">
+                  {session.upnp.available && session.upnp.photon?.ok ? (
+                    <p className="text-green-400">
+                      ✓ Ports auto-forwarded via UPnP (UDP {session.room.port}, TCP {session.port}).
+                    </p>
+                  ) : (
+                    <p className="text-yellow-500">
+                      ⚠ Couldn&apos;t auto-forward ports. LAN works as-is; for internet play, forward
+                      UDP {session.room.port} and TCP {session.port} on your router.
+                    </p>
+                  )}
+                  {session.room.publicIP && (
+                    <p className="mt-1 text-neutral-400">
+                      Public IP:{' '}
+                      <span className="font-mono text-neutral-200">{session.room.publicIP}</span>{' '}
+                      <span className="text-neutral-600">(share for internet play)</span>
+                    </p>
+                  )}
+                </div>
               )}
-              {session.room.publicIP && (
-                <p className="mt-1 text-neutral-400">
-                  Public IP:{' '}
-                  <span className="font-mono text-neutral-200">{session.room.publicIP}</span>{' '}
-                  <span className="text-neutral-600">(share for internet play)</span>
-                </p>
-              )}
-            </div>
+            </>
+          ) : (
+            <p className="mt-1 text-xs text-neutral-500">
+              Cloud mode · region <span className="font-mono">{session.room.region}</span>. Friends
+              on any store join this room over Photon Cloud — no port-forwarding needed. Launch the
+              game to connect.
+            </p>
           )}
         </div>
       )}

@@ -2,6 +2,7 @@ const net = require('net');
 const os = require('os');
 const { store } = require('../store');
 const upnp = require('./upnp');
+const profiles = require('./profiles');
 
 // Lightweight lobby networking over raw TCP. The host opens a port and accepts
 // clients; each side exchanges a newline-delimited JSON handshake carrying the
@@ -74,13 +75,22 @@ function createNetwork(emit) {
     const players = new Map(); // id -> { id, name, ping, socket }
     let nextId = 1;
 
-    // Mint the room descriptor clients will converge on: the host's self-hosted
-    // Photon server address + a shared room code + the agreed AppId.
+    // Mint the room descriptor clients will converge on. The game's profile
+    // decides the connection mode: cloud-region (Photon Cloud, pinned region +
+    // room — no server/NAT) or self-hosted (the host's own Photon server).
+    const game = (store.get('games') || []).find((g) => g.id === gameId);
+    const profile = game ? profiles.matchProfile(game) : {};
+    const mode = profile.connectionMode || 'cloud-region';
+    const userAppId = (store.get('settings.photonAppId') || '').trim();
     const descriptor = {
       serverIP: getLocalIP(),
       port: PHOTON_DEFAULT_PORT,
-      appId: (store.get('settings.photonAppId') || '').trim() || 'unifia-local',
+      // Self-hosted accepts any AppId; cloud keeps the game's own (empty) unless
+      // the user supplied a real Photon AppId.
+      appId: userAppId || (mode === 'self-hosted' ? 'unifia-local' : ''),
       roomCode: makeRoomCode(),
+      region: profile.region || 'eu',
+      connectionMode: mode,
       version: identity.version,
     };
 
@@ -163,7 +173,10 @@ function createNetwork(emit) {
     // host's IP is reachable over the internet without manual port-forwarding.
     let upnpResult = null;
     try {
-      upnpResult = await upnp.openHostPorts({ photonPort: descriptor.port, lobbyPort: port });
+      upnpResult = await upnp.openHostPorts({
+        photonPort: mode === 'self-hosted' ? descriptor.port : undefined,
+        lobbyPort: port,
+      });
       if (upnpResult && upnpResult.externalIp) descriptor.publicIP = upnpResult.externalIp;
     } catch {
       /* host can still port-forward manually */

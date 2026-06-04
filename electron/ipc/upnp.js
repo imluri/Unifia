@@ -70,14 +70,16 @@ async function openHostPorts({ photonPort, lobbyPort }, timeoutMs = 5000) {
   };
 
   const externalIpAddr = await withTimeout(externalIp(), timeoutMs).catch(() => null);
-  const photon = await tryMap(photonPort, 'UDP');
+  // photonPort is only forwarded for self-hosted mode; cloud-region relays
+  // game traffic through Photon Cloud and just needs the lobby (TCP) reachable.
+  const photon = photonPort ? await tryMap(photonPort, 'UDP') : null;
   const lobby = await tryMap(lobbyPort, 'TCP');
   return { available: true, photon, lobby, externalIp: externalIpAddr };
 }
 
 async function closeHostPorts({ photonPort, lobbyPort }) {
   if (!NatAPI) return;
-  await unmapPort(photonPort, 'UDP').catch(() => {});
+  if (photonPort) await unmapPort(photonPort, 'UDP').catch(() => {});
   await unmapPort(lobbyPort, 'TCP').catch(() => {});
 }
 

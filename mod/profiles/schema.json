@@ -30,6 +30,17 @@
       "description": "Whether the game exposes a public room/region browser the mod can inject into (Level A). When false, players auto-join by room code (Level B).",
       "default": false
     },
+    "connectionMode": {
+      "type": "string",
+      "description": "'cloud-region' keeps Photon Cloud but pins everyone to one region + room (no server/NAT, simplest cross-store). 'self-hosted' repoints the game at the host's own Photon server (direct IP).",
+      "enum": ["cloud-region", "self-hosted"],
+      "default": "cloud-region"
+    },
+    "region": {
+      "type": "string",
+      "description": "Photon Cloud region all players are pinned to in cloud-region mode (e.g. eu, us, usw, asia, jp, au). Everyone must share one for matchmaking to converge.",
+      "default": "eu"
+    },
     "connectHookType": {
       "type": "string",
       "description": "For hookStrategy 'reconnect-on-load': fully-qualified type name whose method the mod patches (Harmony) to trigger activation."

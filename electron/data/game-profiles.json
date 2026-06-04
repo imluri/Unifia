@@ -6,6 +6,8 @@
     "hookStrategy": "manual",
     "autoDelaySeconds": 3,
     "supportsNativeLobby": false,
+    "connectionMode": "cloud-region",
+    "region": "eu",
     "module": "bepinex_mono"
   },
   "games": [
@@ -17,6 +19,8 @@
         "hookStrategy": "manual",
         "autoDelaySeconds": 3,
         "supportsNativeLobby": false,
+        "connectionMode": "cloud-region",
+        "region": "eu",
         "module": "bepinex_mono"
       }
     }
