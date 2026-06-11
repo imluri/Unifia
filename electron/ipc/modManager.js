@@ -146,6 +146,59 @@ async function checkModUpdates(gameId) {
   return updates;
 }
 
+function copyDirInto(src, dest, recordRel, baseDest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name);
+    const d = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDirInto(s, d, recordRel, baseDest);
+    else {
+      fs.copyFileSync(s, d);
+      recordRel.push(path.relative(baseDest, d));
+    }
+  }
+}
+
+// Reconcile the game folder against staged mod state: remove previously-deployed
+// files, then copy enabled mods in (BepInExPack → root, others → plugins).
+// Additive and file-tracked, so it never touches files it didn't place (e.g.
+// Unifia.Pun.dll installed by pluginManager).
+function deployMods(gameId, installPath) {
+  const state = { ...modsState(gameId) };
+  let changed = false;
+
+  for (const [fullName, m] of Object.entries(state)) {
+    // Remove whatever this mod previously deployed.
+    for (const rel of m.deployedFiles || []) {
+      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
+    }
+    m.deployedFiles = [];
+
+    if (!m.enabled) { changed = true; continue; }
+
+    const staging = path.join(modsDir(gameId), fullName);
+    if (!fs.existsSync(staging)) { changed = true; continue; }
+
+    const recordRel = [];
+    if (deployTarget(fullName) === 'root') {
+      // BepInExPack zips wrap their payload in a BepInExPack* folder; deploy its
+      // contents to the game root, else deploy the staging root itself.
+      const inner = fs.readdirSync(staging, { withFileTypes: true })
+        .find((e) => e.isDirectory() && /bepinexpack/i.test(e.name));
+      const from = inner ? path.join(staging, inner.name) : staging;
+      copyDirInto(from, installPath, recordRel, installPath);
+    } else {
+      const dest = path.join(installPath, 'BepInEx', 'plugins', fullName);
+      copyDirInto(staging, dest, recordRel, installPath);
+    }
+    m.deployedFiles = recordRel;
+    changed = true;
+  }
+
+  if (changed) saveModsState(gameId, state);
+  return { gameId, deployed: Object.values(state).filter((m) => m.enabled).length };
+}
+
 module.exports = {
   fetchModList,
   getInstalledMods,
@@ -156,4 +209,5 @@ module.exports = {
   communityFor,
   modsState,
   saveModsState,
+  deployMods,
 };

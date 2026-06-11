@@ -5,6 +5,7 @@ const { store } = require('../store');
 const { moduleDir } = require('../paths');
 const patcher = require('./patcher');
 const profiles = require('./profiles');
+const modManager = require('./modManager');
 
 // Tracks the currently spawned game process so we can detect "already running"
 // and kill on request. Keyed by gameId.
@@ -64,6 +65,13 @@ function launchGame(gameId, { args = [] } = {}) {
   }
 
   const deployed = deployModule(game);
+
+  // Deploy enabled Thunderstore mods into the game (staging → game folder).
+  try {
+    modManager.deployMods(game.id, game.installPath);
+  } catch {
+    /* a bad mod shouldn't block launch */
+  }
 
   // Tell the in-game mod how to behave for this game (unifia_profile.json), and
   // — if the lobby brokered a room — write the room descriptor (unifia_net.cfg)
