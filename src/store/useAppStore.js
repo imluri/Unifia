@@ -29,6 +29,14 @@ export const useAppStore = create((set, get) => ({
   // Resolved game art keyed by gameId: { banner, icon, hero }
   art: {},
 
+  // Mods (per open game detail view)
+  modList: [], // browse list for the active community
+  modCommunity: null,
+  installedMods: [], // [{ fullName, version, enabled, isDependency }]
+  modUpdates: [], // [{ fullName, current, latest }]
+  modsLoading: false,
+  modProgress: {}, // fullName -> { percent }
+
   // --- Bootstrap ---
   // Called by the LoadingScreen once its sequenced steps have gathered data.
   // Centralizes "we're live now": store the data, apply the theme, wire events.
@@ -66,8 +74,12 @@ export const useAppStore = create((set, get) => ({
     set({ _wired: true });
 
     api.onDownloadProgress((p) => {
-      const key = `${p.moduleName}@${p.version}`;
-      set((s) => ({ downloads: { ...s.downloads, [key]: p } }));
+      if (p.mod && p.fullName) {
+        set((s) => ({ modProgress: { ...s.modProgress, [p.fullName]: p } }));
+      } else {
+        const key = `${p.moduleName}@${p.version}`;
+        set((s) => ({ downloads: { ...s.downloads, [key]: p } }));
+      }
     });
     api.onVersionMismatch((payload) => set({ versionMismatch: payload }));
     api.onPlayerJoined(() => get().refreshPlayers());
@@ -161,6 +173,33 @@ export const useAppStore = create((set, get) => ({
       set((s) => ({ art: { ...s.art, [game.id]: null } }));
       return null;
     }
+  },
+
+  // --- Mods ---
+  async loadMods(gameId, { refresh = false } = {}) {
+    set({ modsLoading: true });
+    try {
+      const [{ community, packages }, installed] = await Promise.all([
+        api.fetchModList(gameId, { refresh }),
+        api.getInstalledMods(gameId),
+      ]);
+      set({ modList: packages, modCommunity: community, installedMods: installed });
+      api.checkModUpdates(gameId).then((u) => set({ modUpdates: u })).catch(() => {});
+    } finally {
+      set({ modsLoading: false });
+    }
+  },
+  async installMod(gameId, fullName, version) {
+    await api.installMod(gameId, fullName, version);
+    set({ installedMods: await api.getInstalledMods(gameId) });
+  },
+  async uninstallMod(gameId, fullName) {
+    await api.uninstallMod(gameId, fullName);
+    set({ installedMods: await api.getInstalledMods(gameId) });
+  },
+  async setModEnabled(gameId, fullName, enabled) {
+    await api.setModEnabled(gameId, fullName, enabled);
+    set({ installedMods: await api.getInstalledMods(gameId) });
   },
 
   // --- Launch ---
