@@ -39,6 +39,14 @@ function ensureDir(dir) {
   return dir;
 }
 
+function modsDir(gameId) {
+  return gameId ? subdir('mods', gameId) : subdir('mods');
+}
+
+function cacheDir() {
+  return subdir('cache');
+}
+
 // Create the baseline folder layout once on startup.
 function ensureLayout() {
   ensureDir(getDataDir());
@@ -53,6 +61,8 @@ module.exports = {
   moduleDir,
   downloadsDir,
   logsDir,
+  modsDir,
+  cacheDir,
   ensureDir,
   ensureLayout,
 };
