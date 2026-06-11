@@ -44,14 +44,19 @@ function readCache(community) {
 }
 
 function writeCache(community, packages) {
-  const file = cacheFile(community);
-  ensureDir(path.dirname(file));
-  fs.writeFileSync(file, JSON.stringify({ fetchedAt: Date.now(), packages }), 'utf8');
+  try {
+    const file = cacheFile(community);
+    ensureDir(path.dirname(file));
+    fs.writeFileSync(file, JSON.stringify({ fetchedAt: Date.now(), packages }), 'utf8');
+  } catch {
+    /* non-fatal: cache write failure; next call will re-fetch */
+  }
 }
 
 // Fetch a community's package list, using the disk cache unless stale/refresh.
 async function fetchModList(community, { refresh = false } = {}) {
   if (!community) return [];
+  if (!/^[\w-]+$/.test(community)) throw new Error('Invalid community');
   const cached = readCache(community);
   if (!refresh && isCacheFresh(cached)) return cached.packages;
 

@@ -38,6 +38,12 @@ test('parsePackages maps the fields the UI needs', () => {
   assert.strictEqual(m.versions.length, 2);
 });
 
+test('parsePackages returns [] for non-array input', () => {
+  assert.deepStrictEqual(parsePackages(null), []);
+  assert.deepStrictEqual(parsePackages(undefined), []);
+  assert.deepStrictEqual(parsePackages([]), []);
+});
+
 test('isCacheFresh respects the TTL', () => {
   const now = Date.now();
   assert.strictEqual(isCacheFresh({ fetchedAt: now - 1000 }, 60000), true);
