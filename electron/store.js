@@ -28,6 +28,8 @@ const store = new Store({
     gameProfiles: {},
     // artCache[gameId] = { banner, icon, hero, fetchedAt }
     artCache: {},
+    // gameMods[gameId][fullName] = { version, enabled, isDependency, deployedFiles }
+    gameMods: {},
   },
 });
 
