@@ -9,6 +9,7 @@ const patcher = require('./ipc/patcher');
 const moduleManager = require('./ipc/moduleManager');
 const artManager = require('./ipc/artManager');
 const profiles = require('./ipc/profiles');
+const modManager = require('./ipc/modManager');
 const pluginManager = require('./ipc/pluginManager');
 const upnp = require('./ipc/upnp');
 const { createNetwork } = require('./ipc/network');
@@ -122,6 +123,18 @@ function registerIpc() {
     if (!game) throw new Error(`Unknown game: ${gameId}`);
     return profiles.matchProfile(game);
   });
+
+  // --- Thunderstore mods ---
+  handle('unifia:fetchModList', (gameId, opts) => modManager.fetchModList(gameId, opts || {}));
+  handle('unifia:getInstalledMods', (gameId) => modManager.getInstalledMods(gameId));
+  handle('unifia:installMod', (gameId, fullName, version) =>
+    modManager.installMod(gameId, fullName, version, (p) => emit('download-progress', { mod: true, ...p }))
+  );
+  handle('unifia:uninstallMod', (gameId, fullName) => modManager.uninstallMod(gameId, fullName));
+  handle('unifia:setModEnabled', (gameId, fullName, enabled) =>
+    modManager.setModEnabled(gameId, fullName, enabled)
+  );
+  handle('unifia:checkModUpdates', (gameId) => modManager.checkModUpdates(gameId));
 
   // --- Unifia connector plugin (per-game) ---
   handle('unifia:getPluginStatus', (gameId) => pluginManager.getPluginStatus(gameId));
