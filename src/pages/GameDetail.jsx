@@ -11,8 +11,10 @@ export default function GameDetail({ game, onBack }) {
   const modCommunity = useAppStore((s) => s.modCommunity);
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
+  const installMod = useAppStore((s) => s.installMod);
 
   const [tab, setTab] = useState('installed');
+  const [bepBusy, setBepBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('downloads');
   const [category, setCategory] = useState('');
@@ -33,6 +35,18 @@ export default function GameDetail({ game, onBack }) {
       : sort === 'name' ? a.name.localeCompare(b.name)
       : b.totalDownloads - a.totalDownloads
     );
+
+  const hasBepInEx = installedMods.some((m) => /bepinexpack/i.test(m.fullName));
+  const bepPkg = modList.find((m) => /bepinexpack/i.test(m.fullName));
+  async function installBepInEx() {
+    if (!bepPkg) return;
+    setBepBusy(true);
+    try {
+      await installMod(game.id, bepPkg.fullName);
+    } finally {
+      setBepBusy(false);
+    }
+  }
 
   return (
     <div>
@@ -68,6 +82,28 @@ export default function GameDetail({ game, onBack }) {
         </div>
       ) : (
         <>
+          {!modsLoading && !hasBepInEx && (
+            <div className="mb-4 rounded border border-yellow-900/40 bg-yellow-900/15 px-4 py-3 text-sm">
+              {bepPkg ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-yellow-300">
+                    BepInEx isn&apos;t installed for this game yet — mods need it to load.
+                  </span>
+                  <button
+                    onClick={installBepInEx}
+                    disabled={bepBusy}
+                    className="shrink-0 rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
+                  >
+                    {bepBusy ? 'Installing…' : 'Install BepInEx'}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-neutral-400">
+                  BepInEx isn&apos;t available in this Thunderstore community.
+                </span>
+              )}
+            </div>
+          )}
           <div className="mb-5 inline-flex rounded-lg bg-neutral-800 p-1">
             {['installed', 'browse'].map((t) => (
               <button
