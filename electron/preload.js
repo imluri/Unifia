@@ -49,6 +49,14 @@ contextBridge.exposeInMainWorld('unifia', {
   patchGame: (gameId, config) => invoke('unifia:patchGame', gameId, config),
   getNetProfile: (gameId) => invoke('unifia:getNetProfile', gameId),
 
+  // Thunderstore mods
+  fetchModList: (gameId, opts) => invoke('unifia:fetchModList', gameId, opts),
+  getInstalledMods: (gameId) => invoke('unifia:getInstalledMods', gameId),
+  installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
+  uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
+  setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
+  checkModUpdates: (gameId) => invoke('unifia:checkModUpdates', gameId),
+
   // Unifia connector plugin (per-game)
   getPluginStatus: (gameId) => invoke('unifia:getPluginStatus', gameId),
   installPlugin: (gameId) => invoke('unifia:installPlugin', gameId),

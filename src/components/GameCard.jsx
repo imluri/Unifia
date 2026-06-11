@@ -69,6 +69,7 @@ export default function GameCard({
   onLaunch,
   onRemove,
   onConfigure,
+  onOpen,
   index = 0,
   view = 'list',
 }) {
@@ -142,9 +143,7 @@ export default function GameCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-neutral-100" title={game.name}>
-              {game.name}
-            </h3>
+            <button onClick={onOpen} className="truncate text-left text-sm font-semibold text-neutral-100 hover:text-accent" title={game.name}>{game.name}</button>
             <StoreBadge store={game.store} />
           </div>
           <p className="truncate text-xs text-neutral-500" title={game.installPath}>
@@ -192,9 +191,7 @@ export default function GameCard({
         <div className="mb-2 flex items-start gap-3">
           <GameIcon src={icon} onError={() => setIconOk(false)} />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base font-semibold text-neutral-100" title={game.name}>
-              {game.name}
-            </h3>
+            <button onClick={onOpen} className="truncate text-left text-base font-semibold text-neutral-100 hover:text-accent" title={game.name}>{game.name}</button>
             <span className="mt-0.5 inline-block">
               <StoreBadge store={game.store} />
             </span>
