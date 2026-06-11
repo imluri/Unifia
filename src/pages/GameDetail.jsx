@@ -12,6 +12,9 @@ export default function GameDetail({ game, onBack }) {
   const installedMods = useAppStore((s) => s.installedMods);
 
   const [tab, setTab] = useState('installed');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('downloads');
+  const [category, setCategory] = useState('');
 
   useEffect(() => {
     if (game) loadMods(game.id);
@@ -19,6 +22,16 @@ export default function GameDetail({ game, onBack }) {
   }, [game?.id]);
 
   if (!game) return null;
+
+  const categories = Array.from(new Set(modList.flatMap((m) => m.categories))).sort();
+  const browse = modList
+    .filter((m) => !query || `${m.name} ${m.owner} ${m.latest?.description || ''}`.toLowerCase().includes(query.toLowerCase()))
+    .filter((m) => !category || m.categories.includes(category))
+    .sort((a, b) =>
+      sort === 'rating' ? b.rating - a.rating
+      : sort === 'name' ? a.name.localeCompare(b.name)
+      : b.totalDownloads - a.totalDownloads
+    );
 
   return (
     <div>
@@ -67,10 +80,31 @@ export default function GameDetail({ game, onBack }) {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {modList.map((m) => (
-                <ModBrowseCard key={m.fullName} game={game} mod={m} />
-              ))}
+            <div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search mods…"
+                  className="flex-1 rounded bg-neutral-800 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-accent"
+                />
+                <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded bg-neutral-800 px-2 py-2 text-sm">
+                  <option value="downloads">Most downloaded</option>
+                  <option value="rating">Top rated</option>
+                  <option value="name">Name</option>
+                </select>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded bg-neutral-800 px-2 py-2 text-sm">
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {browse.map((m) => (
+                  <ModBrowseCard key={m.fullName} game={game} mod={m} />
+                ))}
+              </div>
             </div>
           )}
         </>
