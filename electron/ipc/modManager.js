@@ -164,7 +164,9 @@ function copyDirInto(src, dest, recordRel, baseDest) {
 // Additive and file-tracked, so it never touches files it didn't place (e.g.
 // Unifia.Pun.dll installed by pluginManager).
 function deployMods(gameId, installPath) {
-  const state = { ...modsState(gameId) };
+  // Deep copy so the per-mod `deployedFiles` mutations below can never touch the
+  // persisted state until we explicitly saveModsState after the loop succeeds.
+  const state = JSON.parse(JSON.stringify(modsState(gameId)));
   let changed = false;
 
   for (const [fullName, m] of Object.entries(state)) {

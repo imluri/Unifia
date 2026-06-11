@@ -35,6 +35,7 @@ export const useAppStore = create((set, get) => ({
   installedMods: [], // [{ fullName, version, enabled, isDependency }]
   modUpdates: [], // [{ fullName, current, latest }]
   modsLoading: false,
+  modError: null, // surfaced when the Thunderstore list fails to load
   modProgress: {}, // fullName -> { percent }
 
   // --- Bootstrap ---
@@ -177,7 +178,7 @@ export const useAppStore = create((set, get) => ({
 
   // --- Mods ---
   async loadMods(gameId, { refresh = false } = {}) {
-    set({ modsLoading: true });
+    set({ modsLoading: true, modError: null });
     try {
       const [{ community, packages }, installed] = await Promise.all([
         api.fetchModList(gameId, { refresh }),
@@ -185,12 +186,21 @@ export const useAppStore = create((set, get) => ({
       ]);
       set({ modList: packages, modCommunity: community, installedMods: installed });
       api.checkModUpdates(gameId).then((u) => set({ modUpdates: u })).catch(() => {});
+    } catch (err) {
+      // Don't leave the UI looking like "no mod source" on a fetch failure.
+      set({ modError: err.message || String(err) });
     } finally {
       set({ modsLoading: false });
     }
   },
   async installMod(gameId, fullName, version) {
     await api.installMod(gameId, fullName, version);
+    // Drop the now-finished progress entry so it can't be read stale later.
+    set((s) => {
+      const next = { ...s.modProgress };
+      delete next[fullName];
+      return { modProgress: next };
+    });
     set({ installedMods: await api.getInstalledMods(gameId) });
   },
   async uninstallMod(gameId, fullName) {

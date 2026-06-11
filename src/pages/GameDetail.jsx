@@ -7,6 +7,7 @@ import { useAppStore } from '../store/useAppStore.js';
 export default function GameDetail({ game, onBack }) {
   const loadMods = useAppStore((s) => s.loadMods);
   const modsLoading = useAppStore((s) => s.modsLoading);
+  const modError = useAppStore((s) => s.modError);
   const modCommunity = useAppStore((s) => s.modCommunity);
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
@@ -49,7 +50,19 @@ export default function GameDetail({ game, onBack }) {
         </p>
       </div>
 
-      {!modCommunity ? (
+      {modError ? (
+        <div className="rounded-lg border border-red-900/50 bg-red-900/20 p-6 text-center text-sm text-red-300">
+          Couldn&apos;t load mods: {modError}
+          <div className="mt-3">
+            <button
+              onClick={() => loadMods(game.id, { refresh: true })}
+              className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : !modCommunity ? (
         <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
           This game isn&apos;t mapped to a Thunderstore community, so there are no mods to browse.
         </div>
