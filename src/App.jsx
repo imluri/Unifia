@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import GameDetail from './pages/GameDetail.jsx';
 import { useAppStore } from './store/useAppStore.js';
 import Home from './pages/Home.jsx';
 import Lobby from './pages/Lobby.jsx';
@@ -24,8 +25,12 @@ const NAV = [
 function MainLayout() {
   const error = useAppStore((s) => s.error);
   const [page, setPage] = useState('home');
+  const [detailGame, setDetailGame] = useState(null);
 
   function renderPage() {
+    if (detailGame) {
+      return <GameDetail game={detailGame} onBack={() => setDetailGame(null)} />;
+    }
     switch (page) {
       case 'lobby':
         return <Lobby />;
@@ -37,7 +42,7 @@ function MainLayout() {
         return <About />;
       case 'home':
       default:
-        return <Home goToModules={() => setPage('modules')} />;
+        return <Home goToModules={() => setPage('modules')} onOpenGame={setDetailGame} />;
     }
   }
 
@@ -57,7 +62,7 @@ function MainLayout() {
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => setPage(item.id)}
+                    onClick={() => { setDetailGame(null); setPage(item.id); }}
                     className={`relative flex w-full items-center gap-3 rounded px-3 py-2 text-sm transition ${
                       active
                         ? 'bg-accent/15 text-neutral-100'

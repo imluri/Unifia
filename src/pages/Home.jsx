@@ -143,7 +143,7 @@ function Field({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function Home({ goToModules }) {
+export default function Home({ goToModules, onOpenGame }) {
   const games = useAppStore((s) => s.games);
   const gameProfiles = useAppStore((s) => s.gameProfiles);
   const rescan = useAppStore((s) => s.rescan);
@@ -453,6 +453,7 @@ export default function Home({ goToModules }) {
               onLaunch={handleLaunch}
               onRemove={(g) => removeGame(g.id)}
               onConfigure={(g) => setModuleGame(g)}
+              onOpen={() => onOpenGame(game)}
             />
           ))}
         </div>
