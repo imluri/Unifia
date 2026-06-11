@@ -56,7 +56,7 @@ async function stageVersion(gameId, fullName, versionData, onProgress) {
   const res = await httpFetch(versionData.download_url, {
     headers: { 'User-Agent': 'Unifia-Launcher' },
   });
-  if (!res.ok || !res.body) throw new Error(`Download failed ${res.status}`);
+  if (!res.ok || !res.body) throw new Error(`Download failed ${res.status}: ${res.statusText}`);
 
   const total = Number(res.headers.get('content-length')) || 0;
   let received = 0;
@@ -114,7 +114,7 @@ async function installMod(gameId, fullName, version, onProgress) {
 
 // Remove a mod from staging + state (deploy reconciles the live game folder).
 function uninstallMod(gameId, fullName) {
-  const state = modsState(gameId);
+  const state = { ...modsState(gameId) };
   if (!state[fullName]) return { gameId, fullName, removed: false };
   fs.rmSync(path.join(modsDir(gameId), fullName), { recursive: true, force: true });
   delete state[fullName];
@@ -123,7 +123,7 @@ function uninstallMod(gameId, fullName) {
 }
 
 function setModEnabled(gameId, fullName, enabled) {
-  const state = modsState(gameId);
+  const state = { ...modsState(gameId) };
   if (!state[fullName]) throw new Error(`Mod not installed: ${fullName}`);
   state[fullName].enabled = !!enabled;
   saveModsState(gameId, state);
