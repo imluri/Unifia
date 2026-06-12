@@ -81,7 +81,7 @@ export default function GameDetail({ game, onBack }) {
         </div>
       ) : modHubs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
-          This game isn&apos;t mapped to a Thunderstore community, so there are no mods to browse.
+          This game has no supported mod source, so there&apos;s nothing to browse.
         </div>
       ) : (
         <>

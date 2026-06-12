@@ -57,7 +57,7 @@ export default function ModBrowseCard({ game, mod }) {
                 onChange={(e) => setVersion(e.target.value)}
                 className="rounded bg-neutral-800 px-2 py-1 text-xs"
               >
-                {mod.versions.map((v) => (
+                {(mod.versions || []).map((v) => (
                   <option key={v.version_number} value={v.version_number}>
                     {v.version_number}
                   </option>
