@@ -7,6 +7,8 @@ const { modsDir, downloadsDir, ensureDir } = require('../paths');
 const thunderstore = require('./thunderstore');
 const profiles = require('./profiles');
 const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
+const { aggregateMods } = require('./modHubs/aggregate');
+const { getProviders } = require('./modHubs');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -42,13 +44,12 @@ function getInstalledMods(gameId) {
   return Object.entries(state).map(([fullName, m]) => ({ fullName, ...m }));
 }
 
-// Fetch + return the community package list (cached).
+// Aggregate this game's mods across all registered hub providers. Returns
+// { packages, hubs } — each mod carries its hub tag.
 async function fetchModList(gameId, opts) {
   const game = findGame(gameId);
-  const community = communityFor(game);
-  if (!community) return { community: null, packages: [] };
-  const packages = await thunderstore.fetchModList(community, opts || {});
-  return { community, packages };
+  const profile = profiles.matchProfile(game);
+  return aggregateMods(getProviders(), profile, opts || {});
 }
 
 // Download one version zip to a temp file, extract into its staging folder.
