@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { store } = require('../store');
+const modManager = require('./modManager');
 
 // Manages the Unifia BepInEx connector plugin (Unifia.Pun.dll) per game:
 // locating the built DLL, detecting whether it's installed in a game, and
@@ -61,7 +62,9 @@ function getPluginStatus(gameId) {
     pluginFile: PLUGIN_FILENAME,
     available: !!dll, // is the built DLL present to install from?
     pluginInstalled: fs.existsSync(pluginPath(game.installPath)),
-    bepinexInstalled: bepinexInstalled(game.installPath),
+    // BepInEx counts as present if it's on disk OR a BepInExPack is staged
+    // (it deploys on launch), so the connector-plugin modal won't falsely nag.
+    bepinexInstalled: bepinexInstalled(game.installPath) || modManager.hasEnabledBepInExPack(gameId),
   };
 }
 

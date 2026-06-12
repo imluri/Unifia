@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { parseDependency, resolveInstallSet, deployTarget } = require('./modResolver');
+const { parseDependency, resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
 
 const PKGS = [
   { fullName: 'BepInEx-BepInExPack', versions: [{ version_number: '5.4.2100', dependencies: [] }] },
@@ -50,4 +50,19 @@ test('deployTarget routes BepInExPack to root, others to plugins', () => {
   assert.strictEqual(deployTarget('BepInEx-BepInExPack'), 'root');
   assert.strictEqual(deployTarget('denikson-BepInExPack_Valheim'), 'root');
   assert.strictEqual(deployTarget('Owner-CoolMod'), 'plugins');
+});
+
+test('hasBepInExPack: true only when an enabled BepInExPack entry exists', () => {
+  assert.strictEqual(
+    hasBepInExPack({ 'BepInEx-BepInExPack': { enabled: true }, 'Owner-Mod': { enabled: true } }),
+    true
+  );
+  assert.strictEqual(hasBepInExPack({ 'denikson-BepInExPack_Valheim': { enabled: true } }), true);
+  // disabled BepInExPack does not count
+  assert.strictEqual(hasBepInExPack({ 'BepInEx-BepInExPack': { enabled: false } }), false);
+  // unrelated mods only
+  assert.strictEqual(hasBepInExPack({ 'Owner-Mod': { enabled: true } }), false);
+  // empty / missing
+  assert.strictEqual(hasBepInExPack({}), false);
+  assert.strictEqual(hasBepInExPack(null), false);
 });

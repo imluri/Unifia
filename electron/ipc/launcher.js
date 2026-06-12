@@ -64,7 +64,10 @@ function launchGame(gameId, { args = [] } = {}) {
     throw new Error(`Executable not found: ${game.executablePath}`);
   }
 
-  const deployed = deployModule(game);
+  // If a Thunderstore BepInExPack is staged+enabled, it provides the loader
+  // (deployMods copies it to the game root below) — skip the GitHub BepInEx copy
+  // so we never install two overlapping loaders.
+  const deployed = modManager.hasEnabledBepInExPack(game.id) ? null : deployModule(game);
 
   // Deploy enabled Thunderstore mods into the game (staging → game folder).
   try {

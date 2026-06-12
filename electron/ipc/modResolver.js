@@ -51,4 +51,12 @@ function deployTarget(fullName) {
   return /bepinexpack/i.test(fullName) ? 'root' : 'plugins';
 }
 
-module.exports = { parseDependency, resolveInstallSet, findVersion, deployTarget };
+// True when the game's mod state contains an enabled BepInExPack (the loader).
+// modState maps fullName -> { enabled, ... }.
+function hasBepInExPack(modState) {
+  return Object.entries(modState || {}).some(
+    ([fullName, m]) => m && m.enabled && /bepinexpack/i.test(fullName)
+  );
+}
+
+module.exports = { parseDependency, resolveInstallSet, findVersion, deployTarget, hasBepInExPack };

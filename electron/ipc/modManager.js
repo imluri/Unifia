@@ -6,7 +6,7 @@ const { httpFetch } = require('../util');
 const { modsDir, downloadsDir, ensureDir } = require('../paths');
 const thunderstore = require('./thunderstore');
 const profiles = require('./profiles');
-const { resolveInstallSet, deployTarget } = require('./modResolver');
+const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -28,6 +28,12 @@ function saveModsState(gameId, state) {
   const all = store.get('gameMods') || {};
   all[gameId] = state;
   store.set('gameMods', all);
+}
+
+// Does this game have an enabled BepInExPack staged? (i.e. the Thunderstore mod
+// system provides the loader, so the GitHub BepInEx copy should be skipped.)
+function hasEnabledBepInExPack(gameId) {
+  return hasBepInExPack(modsState(gameId));
 }
 
 // List recorded mods for a game (installed state, for the Installed tab).
@@ -212,4 +218,5 @@ module.exports = {
   modsState,
   saveModsState,
   deployMods,
+  hasEnabledBepInExPack,
 };
