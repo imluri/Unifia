@@ -8,7 +8,7 @@ export default function GameDetail({ game, onBack }) {
   const loadMods = useAppStore((s) => s.loadMods);
   const modsLoading = useAppStore((s) => s.modsLoading);
   const modError = useAppStore((s) => s.modError);
-  const modCommunity = useAppStore((s) => s.modCommunity);
+  const modHubs = useAppStore((s) => s.modHubs);
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
   const installMod = useAppStore((s) => s.installMod);
@@ -18,6 +18,7 @@ export default function GameDetail({ game, onBack }) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('downloads');
   const [category, setCategory] = useState('');
+  const [hub, setHub] = useState('');
 
   useEffect(() => {
     if (game) loadMods(game.id);
@@ -30,9 +31,11 @@ export default function GameDetail({ game, onBack }) {
   const browse = modList
     .filter((m) => !query || `${m.name} ${m.owner} ${m.latest?.description || ''}`.toLowerCase().includes(query.toLowerCase()))
     .filter((m) => !category || m.categories.includes(category))
+    .filter((m) => !hub || m.hub === hub)
     .sort((a, b) =>
       sort === 'rating' ? b.rating - a.rating
       : sort === 'name' ? a.name.localeCompare(b.name)
+      : sort === 'hub' ? a.hubLabel.localeCompare(b.hubLabel)
       : b.totalDownloads - a.totalDownloads
     );
 
@@ -60,7 +63,7 @@ export default function GameDetail({ game, onBack }) {
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-neutral-100">{game.name}</h1>
         <p className="text-sm text-neutral-500">
-          {modCommunity ? `Thunderstore: ${modCommunity}` : 'No mod source for this game'}
+          {modHubs.length ? `Mods from: ${modHubs.map((h) => h.label).join(', ')}` : 'No mod source for this game'}
         </p>
       </div>
 
@@ -76,9 +79,9 @@ export default function GameDetail({ game, onBack }) {
             </button>
           </div>
         </div>
-      ) : !modCommunity ? (
+      ) : modHubs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
-          This game isn&apos;t mapped to a Thunderstore community, so there are no mods to browse.
+          This game has no supported mod source, so there&apos;s nothing to browse.
         </div>
       ) : (
         <>
@@ -141,6 +144,13 @@ export default function GameDetail({ game, onBack }) {
                   <option value="downloads">Most downloaded</option>
                   <option value="rating">Top rated</option>
                   <option value="name">Name</option>
+                  <option value="hub">Hub</option>
+                </select>
+                <select value={hub} onChange={(e) => setHub(e.target.value)} className="rounded bg-neutral-800 px-2 py-2 text-sm">
+                  <option value="">All hubs</option>
+                  {modHubs.map((h) => (
+                    <option key={h.id} value={h.id}>{h.label}</option>
+                  ))}
                 </select>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded bg-neutral-800 px-2 py-2 text-sm">
                   <option value="">All categories</option>
@@ -151,7 +161,7 @@ export default function GameDetail({ game, onBack }) {
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {browse.map((m) => (
-                  <ModBrowseCard key={m.fullName} game={game} mod={m} />
+                  <ModBrowseCard key={m.id} game={game} mod={m} />
                 ))}
               </div>
             </div>

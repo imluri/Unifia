@@ -35,6 +35,9 @@ export default function ModBrowseCard({ game, mod }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold text-neutral-100">{mod.name}</span>
+          <span className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400 ring-1 ring-border-default">
+            {mod.hubLabel}
+          </span>
           {mod.deprecated && (
             <span className="rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] text-red-300">deprecated</span>
           )}
@@ -47,25 +50,37 @@ export default function ModBrowseCard({ game, mod }) {
         </p>
 
         <div className="mt-2 flex items-center gap-2">
-          <select
-            value={version}
-            onChange={(e) => setVersion(e.target.value)}
-            className="rounded bg-neutral-800 px-2 py-1 text-xs"
-          >
-            {mod.versions.map((v) => (
-              <option key={v.version_number} value={v.version_number}>
-                {v.version_number}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={doInstall}
-            disabled={busy}
-            className="rounded bg-accent px-3 py-1 text-xs font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
-          >
-            {installed ? 'Reinstall' : busy ? 'Installing…' : 'Install'}
-          </button>
-          {progress && busy && <span className="text-[11px] text-neutral-500">{progress.percent}%</span>}
+          {mod.canInstall ? (
+            <>
+              <select
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                className="rounded bg-neutral-800 px-2 py-1 text-xs"
+              >
+                {(mod.versions || []).map((v) => (
+                  <option key={v.version_number} value={v.version_number}>
+                    {v.version_number}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={doInstall}
+                disabled={busy}
+                className="rounded bg-accent px-3 py-1 text-xs font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
+              >
+                {installed ? 'Reinstall' : busy ? 'Installing…' : 'Install'}
+              </button>
+              {progress && busy && <span className="text-[11px] text-neutral-500">{progress.percent}%</span>}
+            </>
+          ) : (
+            <button
+              onClick={() => mod.pageUrl && window.unifia.openExternal(mod.pageUrl)}
+              disabled={!mod.pageUrl}
+              className="rounded bg-neutral-700 px-3 py-1 text-xs text-neutral-100 transition hover:bg-surface-hover disabled:opacity-50"
+            >
+              View on {mod.hubLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

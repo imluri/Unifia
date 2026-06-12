@@ -31,7 +31,7 @@ export const useAppStore = create((set, get) => ({
 
   // Mods (per open game detail view)
   modList: [], // browse list for the active community
-  modCommunity: null,
+  modHubs: [], // [{ id, label }] hubs that map the open game
   installedMods: [], // [{ fullName, version, enabled, isDependency }]
   modUpdates: [], // [{ fullName, current, latest }]
   modsLoading: false,
@@ -180,11 +180,11 @@ export const useAppStore = create((set, get) => ({
   async loadMods(gameId, { refresh = false } = {}) {
     set({ modsLoading: true, modError: null });
     try {
-      const [{ community, packages }, installed] = await Promise.all([
+      const [{ hubs, packages }, installed] = await Promise.all([
         api.fetchModList(gameId, { refresh }),
         api.getInstalledMods(gameId),
       ]);
-      set({ modList: packages, modCommunity: community, installedMods: installed });
+      set({ modList: packages, modHubs: hubs, installedMods: installed });
       api.checkModUpdates(gameId).then((u) => set({ modUpdates: u })).catch(() => {});
     } catch (err) {
       // Don't leave the UI looking like "no mod source" on a fetch failure.

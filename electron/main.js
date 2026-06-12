@@ -135,6 +135,10 @@ function registerIpc() {
     modManager.setModEnabled(gameId, fullName, enabled)
   );
   handle('unifia:checkModUpdates', (gameId) => modManager.checkModUpdates(gameId));
+  handle('unifia:openExternal', (url) => {
+    if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
+    return true;
+  });
 
   // --- Unifia connector plugin (per-game) ---
   handle('unifia:getPluginStatus', (gameId) => pluginManager.getPluginStatus(gameId));
