@@ -63,16 +63,7 @@ function EngineBadge({ game }) {
   );
 }
 
-export default function GameCard({
-  game,
-  profile,
-  onLaunch,
-  onRemove,
-  onConfigure,
-  onOpen,
-  index = 0,
-  view = 'list',
-}) {
+export default function GameCard({ game, profile, onOpen, index = 0, view = 'list' }) {
   const art = useAppStore((s) => s.art[game.id]);
   const fetchArt = useAppStore((s) => s.fetchArt);
   const [loadingArt, setLoadingArt] = useState(art === undefined);
@@ -104,37 +95,12 @@ export default function GameCard({
   // Stagger the mount animation by index, capped so later items appear instantly.
   const delay = index < 8 ? index * 40 : 0;
 
-  const actions = (
-    <>
-      <button
-        onClick={() => onLaunch(game)}
-        className={`rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 ${
-          view === 'grid' ? 'flex-1' : ''
-        }`}
-      >
-        Launch
-      </button>
-      <button
-        onClick={() => onConfigure(game)}
-        className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition hover:bg-surface-hover"
-      >
-        Module
-      </button>
-      <button
-        onClick={() => onRemove(game)}
-        title="Remove from library"
-        className="flex items-center rounded bg-neutral-800 px-2 py-1.5 text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
-      >
-        <Icon name="x" size={16} />
-      </button>
-    </>
-  );
-
   // ---- List view: compact horizontal row ---------------------------------
   if (view === 'list') {
     return (
       <div
-        className="card-mount flex items-center gap-3 rounded bg-card px-3 py-2.5 ring-1 ring-border-subtle transition-all duration-150 hover:ring-accent/40"
+        onClick={onOpen}
+        className="card-mount flex cursor-pointer items-center gap-3 rounded bg-card px-3 py-2.5 ring-1 ring-border-subtle transition-all duration-150 hover:ring-accent/40"
         style={{ animationDelay: `${delay}ms` }}
       >
         {loadingArt ? <div className="skeleton h-10 w-10 shrink-0 rounded" /> : (
@@ -143,7 +109,7 @@ export default function GameCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <button onClick={onOpen} className="truncate text-left text-sm font-semibold text-neutral-100 hover:text-accent" title={game.name}>{game.name}</button>
+            <h3 className="truncate text-sm font-semibold text-neutral-100" title={game.name}>{game.name}</h3>
             <StoreBadge store={game.store} />
           </div>
           <p className="truncate text-xs text-neutral-500" title={game.installPath}>
@@ -156,8 +122,6 @@ export default function GameCard({
           <VersionBadge version={game.version} buildId={game.buildId} />
           <ModuleStatus profile={profile} />
         </div>
-
-        <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>
     );
   }
@@ -165,7 +129,8 @@ export default function GameCard({
   // ---- Grid view: art card -----------------------------------------------
   return (
     <div
-      className="card-mount group relative flex min-h-[150px] flex-col overflow-hidden rounded bg-card p-4 shadow-sm ring-1 ring-border-subtle transition-all duration-150 hover:-translate-y-px hover:ring-accent/40"
+      onClick={onOpen}
+      className="card-mount group relative flex min-h-[150px] cursor-pointer flex-col overflow-hidden rounded bg-card p-4 shadow-sm ring-1 ring-border-subtle transition-all duration-150 hover:-translate-y-px hover:ring-accent/40"
       style={{ animationDelay: `${delay}ms` }}
     >
       {/* Art / skeleton layer behind the content. */}
@@ -191,7 +156,7 @@ export default function GameCard({
         <div className="mb-2 flex items-start gap-3">
           <GameIcon src={icon} onError={() => setIconOk(false)} />
           <div className="min-w-0 flex-1">
-            <button onClick={onOpen} className="truncate text-left text-base font-semibold text-neutral-100 hover:text-accent" title={game.name}>{game.name}</button>
+            <h3 className="truncate text-base font-semibold text-neutral-100" title={game.name}>{game.name}</h3>
             <span className="mt-0.5 inline-block">
               <StoreBadge store={game.store} />
             </span>
@@ -211,7 +176,6 @@ export default function GameCard({
           {game.installPath}
         </p>
 
-        <div className="mt-auto flex gap-2">{actions}</div>
       </div>
     </div>
   );
