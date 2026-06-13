@@ -29,7 +29,13 @@ function MainLayout() {
 
   function renderPage() {
     if (detailGame) {
-      return <GameDetail game={detailGame} onBack={() => setDetailGame(null)} />;
+      return (
+        <GameDetail
+          game={detailGame}
+          onBack={() => setDetailGame(null)}
+          goToModules={() => { setDetailGame(null); setPage('modules'); }}
+        />
+      );
     }
     switch (page) {
       case 'lobby':
@@ -42,7 +48,7 @@ function MainLayout() {
         return <About />;
       case 'home':
       default:
-        return <Home goToModules={() => setPage('modules')} onOpenGame={setDetailGame} />;
+        return <Home onOpenGame={setDetailGame} />;
     }
   }
 
