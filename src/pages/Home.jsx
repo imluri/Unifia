@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import GameCard from '../components/GameCard.jsx';
-import GameModuleModal from '../components/GameModuleModal.jsx';
 import Icon from '../components/Icon.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -143,18 +142,14 @@ function Field({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function Home({ goToModules, onOpenGame }) {
+export default function Home({ onOpenGame }) {
   const games = useAppStore((s) => s.games);
   const gameProfiles = useAppStore((s) => s.gameProfiles);
   const rescan = useAppStore((s) => s.rescan);
   const addManualGame = useAppStore((s) => s.addManualGame);
-  const removeGame = useAppStore((s) => s.removeGame);
-  const launchGame = useAppStore((s) => s.launchGame);
 
   const [scanning, setScanning] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [moduleGame, setModuleGame] = useState(null); // game whose module modal is open
-  const [notice, setNotice] = useState(null);
   // Library layout. Defaults to list view; remembered across sessions via
   // localStorage so it doesn't need an electron-store round-trip.
   const [view, setView] = useState(() => localStorage.getItem('unifia.libraryView') || 'list');
@@ -247,19 +242,6 @@ export default function Home({ goToModules, onOpenGame }) {
       await rescan();
     } finally {
       setScanning(false);
-    }
-  }
-
-  async function handleLaunch(game) {
-    try {
-      const res = await launchGame(game.id);
-      setNotice(
-        res.alreadyRunning
-          ? `${game.name} is already running.`
-          : `Launched ${game.name}${res.deployedModule ? ` with ${res.deployedModule.module} ${res.deployedModule.version}` : ''}.`
-      );
-    } catch (err) {
-      setNotice(`Launch failed: ${err.message}`);
     }
   }
 
@@ -418,12 +400,6 @@ export default function Home({ goToModules, onOpenGame }) {
         </div>
       )}
 
-      {notice && (
-        <div className="mb-4 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-200">
-          {notice}
-        </div>
-      )}
-
       {games.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
           No games found. Try <button onClick={handleScan} className="text-accent underline">rescanning</button> or add one manually.
@@ -450,9 +426,6 @@ export default function Home({ goToModules, onOpenGame }) {
               view={view}
               game={game}
               profile={gameProfiles[game.id]}
-              onLaunch={handleLaunch}
-              onRemove={(g) => removeGame(g.id)}
-              onConfigure={(g) => setModuleGame(g)}
               onOpen={() => onOpenGame(game)}
             />
           ))}
@@ -466,12 +439,6 @@ export default function Home({ goToModules, onOpenGame }) {
           await addManualGame(game);
           setModalOpen(false);
         }}
-      />
-
-      <GameModuleModal
-        game={moduleGame}
-        onClose={() => setModuleGame(null)}
-        onManageAll={goToModules}
       />
     </div>
   );
