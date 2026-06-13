@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import ModBrowseCard from '../components/ModBrowseCard.jsx';
 import InstalledModRow from '../components/InstalledModRow.jsx';
+import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
-export default function GameDetail({ game, onBack }) {
+export default function GameDetail({ game, onBack, goToModules }) {
   const loadMods = useAppStore((s) => s.loadMods);
   const modsLoading = useAppStore((s) => s.modsLoading);
   const modError = useAppStore((s) => s.modError);
@@ -12,6 +13,8 @@ export default function GameDetail({ game, onBack }) {
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
   const installMod = useAppStore((s) => s.installMod);
+  const launchGame = useAppStore((s) => s.launchGame);
+  const removeGame = useAppStore((s) => s.removeGame);
 
   const [tab, setTab] = useState('installed');
   const [bepBusy, setBepBusy] = useState(false);
@@ -19,6 +22,8 @@ export default function GameDetail({ game, onBack }) {
   const [sort, setSort] = useState('downloads');
   const [category, setCategory] = useState('');
   const [hub, setHub] = useState('');
+  const [moduleOpen, setModuleOpen] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     if (game) loadMods(game.id);
@@ -51,6 +56,23 @@ export default function GameDetail({ game, onBack }) {
     }
   }
 
+  async function handleLaunch() {
+    try {
+      const res = await launchGame(game.id);
+      setNotice(
+        res.alreadyRunning
+          ? `${game.name} is already running.`
+          : `Launched ${game.name}${res.deployedModule ? ` with ${res.deployedModule.module} ${res.deployedModule.version}` : ''}.`
+      );
+    } catch (err) {
+      setNotice(`Launch failed: ${err.message}`);
+    }
+  }
+  async function handleRemove() {
+    await removeGame(game.id);
+    onBack();
+  }
+
   return (
     <div>
       <button
@@ -66,6 +88,31 @@ export default function GameDetail({ game, onBack }) {
           {modHubs.length ? `Mods from: ${modHubs.map((h) => h.label).join(', ')}` : 'No mod source for this game'}
         </p>
       </div>
+
+      <div className="mb-5 flex items-center gap-2">
+        <button
+          onClick={handleLaunch}
+          className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
+        >
+          Launch
+        </button>
+        <button
+          onClick={() => setModuleOpen(true)}
+          className="rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
+        >
+          Module
+        </button>
+        <button
+          onClick={handleRemove}
+          title="Remove from library"
+          className="ml-auto flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
+        >
+          <Icon name="x" size={15} /> Remove
+        </button>
+      </div>
+      {notice && (
+        <div className="mb-4 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-200">{notice}</div>
+      )}
 
       {modError ? (
         <div className="rounded-lg border border-red-900/50 bg-red-900/20 p-6 text-center text-sm text-red-300">
@@ -168,6 +215,12 @@ export default function GameDetail({ game, onBack }) {
           )}
         </>
       )}
+
+      <GameModuleModal
+        game={moduleOpen ? game : null}
+        onClose={() => setModuleOpen(false)}
+        onManageAll={goToModules}
+      />
     </div>
   );
 }
