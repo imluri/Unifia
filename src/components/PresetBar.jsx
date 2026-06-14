@@ -12,9 +12,11 @@ export default function PresetBar({ game }) {
   const switchPreset = useAppStore((s) => s.switchPreset);
   const exportPreset = useAppStore((s) => s.exportPreset);
   const importPreset = useAppStore((s) => s.importPreset);
+  const loadMods = useAppStore((s) => s.loadMods);
 
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState(null);
   // Inline naming (Electron disables window.prompt): mode is 'new' | 'rename' | null.
@@ -81,10 +83,7 @@ export default function PresetBar({ game }) {
         <button onClick={() => openName('rename')} disabled={busy} className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
           Rename
         </button>
-        <button onClick={() => run(async () => {
-          if (data.presets.length <= 1) throw new Error('Cannot delete the last preset');
-          if (window.confirm(`Delete preset "${active ? active.name : ''}"?`)) await deletePreset(game.id, data.activeId);
-        })} disabled={busy} className="rounded bg-neutral-800 px-2 py-1 text-xs text-red-300 hover:bg-red-900/60 disabled:opacity-50">
+        <button onClick={() => setConfirmDelete(true)} disabled={busy} className="rounded bg-neutral-800 px-2 py-1 text-xs text-red-300 hover:bg-red-900/60 disabled:opacity-50">
           Delete
         </button>
 
@@ -138,6 +137,45 @@ export default function PresetBar({ game }) {
 
       {busy && <p className="mt-1 text-xs text-neutral-500"><Icon name="refresh-cw" size={11} className="inline animate-spin" /> Working…</p>}
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/60"
+          onClick={() => setConfirmDelete(false)}
+        >
+          <div
+            className="w-80 rounded-lg bg-card p-5 ring-1 ring-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-semibold text-neutral-100">Delete preset</h3>
+            <p className="mt-1 text-xs text-neutral-400">
+              Delete &quot;{active ? active.name : ''}&quot;? This removes its mod set.
+              {data.presets.length <= 1 && ' Since this is your only preset, it resets to an empty Default.'}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="rounded bg-neutral-700 px-3 py-1.5 text-xs text-neutral-100 hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  run(async () => {
+                    await deletePreset(game.id, data.activeId);
+                    await loadMods(game); // active preset changed — refresh the list
+                    setConfirmDelete(false);
+                  })
+                }
+                disabled={busy}
+                className="rounded bg-red-900/70 px-3 py-1.5 text-xs text-red-200 hover:bg-red-800 disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,9 +43,13 @@ test('removePreset of the active falls back to the first remaining', () => {
   assert.strictEqual(entry.activeId, 'p_1');
 });
 
-test('removePreset refuses the last preset', () => {
+test('removePreset of the last resets to a fresh empty Default', () => {
   const entry = L.migrate(modsA, () => 'p_1');
-  assert.throws(() => L.removePreset(entry, 'p_1'), /last preset/i);
+  const next = L.removePreset(entry, 'p_1', () => 'p_new');
+  assert.strictEqual(next.presets.length, 1);
+  assert.strictEqual(next.presets[0].name, 'Default');
+  assert.deepStrictEqual(next.presets[0].mods, {});
+  assert.strictEqual(next.activeId, 'p_new');
 });
 
 test('renamePreset and snapshot', () => {

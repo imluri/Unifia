@@ -48,9 +48,11 @@ function renamePreset(entry, id, name) {
   };
 }
 
-function removePreset(entry, id) {
-  if (entry.presets.length <= 1) throw new Error('Cannot delete the last preset');
+function removePreset(entry, id, genId) {
   const presets = entry.presets.filter((p) => p.id !== id);
+  // Deleting the last preset resets the game to a fresh, empty "Default" so there
+  // is always exactly one active preset for the launcher to operate on.
+  if (presets.length === 0) return migrate({}, genId);
   const activeId = entry.activeId === id ? presets[0].id : entry.activeId;
   return { ...entry, activeId, presets };
 }

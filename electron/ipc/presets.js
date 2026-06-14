@@ -27,6 +27,8 @@ function rename(gameId, id, name) {
 }
 
 function remove(gameId, id) {
+  // Drop the deleted preset's isolated staging folder so it doesn't orphan on disk.
+  try { fs.rmSync(modsDir(gameId, id), { recursive: true, force: true }); } catch { /* gone */ }
   presetStore.remove(gameId, id);
   return presetStore.list(gameId);
 }

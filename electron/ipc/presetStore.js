@@ -84,7 +84,7 @@ function rename(gameId, id, name) {
   return writeEntry(gameId, L.renamePreset(getEntry(gameId), id, name));
 }
 function remove(gameId, id) {
-  return writeEntry(gameId, L.removePreset(getEntry(gameId), id));
+  return writeEntry(gameId, L.removePreset(getEntry(gameId), id, genId));
 }
 function setActive(gameId, id) {
   return writeEntry(gameId, L.setActive(getEntry(gameId), id));
