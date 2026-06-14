@@ -172,7 +172,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
             </div>
           )}
           <div className="mb-5 inline-flex rounded-lg bg-neutral-800 p-1">
-            {['installed', 'browse'].map((t) => (
+            {(notInstalled ? ['browse'] : ['installed', 'browse']).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
