@@ -39,8 +39,16 @@ function ensureDir(dir) {
   return dir;
 }
 
+// Game ids look like "custom:REPO" or "steam:480". The colon (and other
+// reserved characters) are illegal in Windows paths, so map any id used as a
+// folder name to a safe form. Store keys keep the raw id — only the on-disk
+// folder is sanitized.
+function safeSegment(name) {
+  return String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+}
+
 function modsDir(gameId) {
-  return gameId ? subdir('mods', gameId) : subdir('mods');
+  return gameId ? subdir('mods', safeSegment(gameId)) : subdir('mods');
 }
 
 function cacheDir() {
