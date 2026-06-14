@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { parsePackages, isCacheFresh } = require('./thunderstore');
+const { parsePackages, isCacheFresh, parseCommunities } = require('./thunderstore');
 
 test('parsePackages maps the fields the UI needs', () => {
   const raw = [
@@ -50,4 +50,18 @@ test('isCacheFresh respects the TTL', () => {
   assert.strictEqual(isCacheFresh({ fetchedAt: now - 120000 }, 60000), false);
   assert.strictEqual(isCacheFresh(null, 60000), false);
   assert.strictEqual(isCacheFresh({}, 60000), false);
+});
+
+test('parseCommunities maps identifier + name, tolerating missing fields', () => {
+  const results = [
+    { identifier: 'repo', name: 'REPO' },
+    { identifier: 'lethal-company' }, // missing name → falls back to identifier
+    { name: 'No Identifier' }, // no identifier → dropped
+    null,
+  ];
+  assert.deepStrictEqual(parseCommunities(results), [
+    { identifier: 'repo', name: 'REPO' },
+    { identifier: 'lethal-company', name: 'lethal-company' },
+  ]);
+  assert.deepStrictEqual(parseCommunities(null), []);
 });

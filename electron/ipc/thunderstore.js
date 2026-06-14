@@ -73,4 +73,61 @@ async function fetchModList(community, { refresh = false } = {}) {
   return parsed;
 }
 
-module.exports = { parsePackages, isCacheFresh, fetchModList, cacheFile };
+const COMMUNITIES_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+// Normalize the /api/experimental/community/ results array.
+function parseCommunities(results) {
+  if (!Array.isArray(results)) return [];
+  return results
+    .filter((c) => c && c.identifier)
+    .map((c) => ({ identifier: c.identifier, name: c.name || c.identifier }));
+}
+
+function communitiesCacheFile() {
+  return path.join(cacheDir(), 'thunderstore', '_communities.json');
+}
+
+function readCommunitiesCache() {
+  try {
+    return JSON.parse(fs.readFileSync(communitiesCacheFile(), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeCommunitiesCache(communities) {
+  try {
+    const file = communitiesCacheFile();
+    ensureDir(path.dirname(file));
+    fs.writeFileSync(file, JSON.stringify({ fetchedAt: Date.now(), communities }), 'utf8');
+  } catch {
+    /* non-fatal cache write */
+  }
+}
+
+// Fetch the full Thunderstore community list (all pages, bounded), cached.
+async function fetchCommunities({ refresh = false } = {}) {
+  const cached = readCommunitiesCache();
+  if (!refresh && isCacheFresh(cached, COMMUNITIES_TTL)) return cached.communities;
+
+  try {
+    let url = 'https://thunderstore.io/api/experimental/community/';
+    const all = [];
+    for (let page = 0; url && page < 25; page += 1) {
+      const res = await httpFetch(url, {
+        headers: { Accept: 'application/json', 'User-Agent': 'Unifia-Launcher' },
+      });
+      if (!res.ok) throw new Error(`Thunderstore ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      all.push(...parseCommunities(data.results));
+      url = (data.pagination && data.pagination.next_link) || data.next || null;
+    }
+    writeCommunitiesCache(all);
+    return all;
+  } catch (err) {
+    if (cached) return cached.communities; // serve stale on failure
+    throw err;
+  }
+}
+
+module.exports = { parsePackages, isCacheFresh, fetchModList, cacheFile, parseCommunities, fetchCommunities };
