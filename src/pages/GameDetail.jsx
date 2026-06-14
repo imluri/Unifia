@@ -5,6 +5,7 @@ import InstalledModRow from '../components/InstalledModRow.jsx';
 import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import MultiplayerTab from './MultiplayerTab.jsx';
 import PresetBar from '../components/PresetBar.jsx';
+import InviteModal from '../components/InviteModal.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -35,6 +36,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [hub, setHub] = useState('');
   const [page, setPage] = useState(1);
   const [moduleOpen, setModuleOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [notice, setNotice] = useState(null);
 
   useEffect(() => {
@@ -153,9 +155,16 @@ export default function GameDetail({ game, onBack, goToModules }) {
               </button>
             )}
             <button
+              onClick={() => setInviteOpen(true)}
+              title="Generate or paste a multiplayer invite code"
+              className="ml-auto flex items-center gap-1.5 rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
+            >
+              <Icon name="globe" size={15} /> Invite
+            </button>
+            <button
               onClick={handleRemove}
               title="Remove from library"
-              className="ml-auto flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
+              className="flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
             >
               <Icon name="x" size={15} /> Remove
             </button>
@@ -339,6 +348,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
         onClose={() => setModuleOpen(false)}
         onManageAll={goToModules}
       />
+      <InviteModal game={game} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );
 }
