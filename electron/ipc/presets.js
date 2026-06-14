@@ -17,7 +17,8 @@ function list(gameId) {
 }
 
 function create(gameId, name, fromActive) {
-  presetStore.create(gameId, name, !!fromActive);
+  const id = presetStore.create(gameId, name, !!fromActive);
+  presetStore.setActive(gameId, id); // newly created preset becomes active
   return presetStore.list(gameId);
 }
 

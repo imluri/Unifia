@@ -44,6 +44,21 @@ export const useAppStore = create((set, get) => ({
   discoverLoading: false,
   discoverError: null,
 
+  // Toast notifications: [{ id, type, message }]
+  toasts: [],
+  _toastSeq: 0,
+  pushToast(toast) {
+    const id = get()._toastSeq + 1;
+    set((s) => ({
+      _toastSeq: id,
+      toasts: [...s.toasts, { id, type: toast.type || 'info', message: String(toast.message || '') }],
+    }));
+    return id;
+  },
+  dismissToast(id) {
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+  },
+
   // --- Bootstrap ---
   // Called by the LoadingScreen once its sequenced steps have gathered data.
   // Centralizes "we're live now": store the data, apply the theme, wire events.
@@ -195,18 +210,20 @@ export const useAppStore = create((set, get) => ({
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
     return data;
   },
-  async createPreset(gameId, name, fromActive) {
+  async createPreset(gameId, name, fromActive, game) {
     const data = await api.createPreset(gameId, name, fromActive);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    if (game) await get().loadMods(game); // new preset is active — refresh list
     return data;
   },
   async renamePreset(gameId, id, name) {
     const data = await api.renamePreset(gameId, id, name);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
   },
-  async deletePreset(gameId, id) {
+  async deletePreset(gameId, id, game) {
     const data = await api.deletePreset(gameId, id);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    if (game) await get().loadMods(game);
   },
   async updatePreset(gameId, id) {
     const data = await api.updatePreset(gameId, id);

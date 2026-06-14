@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import Icon from './Icon.jsx';
 import DownloadProgress from './DownloadProgress.jsx';
+import Modal from './ui/Modal.jsx';
+import Button from './ui/Button.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // Map a game's detected Unity backend to the module it needs.
@@ -108,23 +109,29 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
   const knownBackend = game.unityBackend && game.unityBackend !== 'unknown';
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex max-h-[85vh] w-[34rem] flex-col rounded-lg bg-card ring-1 ring-white/10">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-border-subtle px-5 py-4">
-          <div className="min-w-0">
-            <h3 className="truncate text-lg font-semibold text-neutral-100">{game.name}</h3>
-            <p className="text-xs text-neutral-500">Configure mod loader for this game</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex items-center rounded p-1 text-neutral-400 hover:bg-surface-hover hover:text-neutral-100"
-          >
-            <Icon name="x" size={18} />
-          </button>
+    <Modal
+      open
+      onClose={onClose}
+      title={game.name}
+      footer={
+        <div className="flex w-full items-center justify-between">
+          {onManageAll ? (
+            <button
+              onClick={() => {
+                onClose();
+                onManageAll();
+              }}
+              className="text-xs text-neutral-500 underline hover:text-neutral-300"
+            >
+              Manage all versions →
+            </button>
+          ) : (
+            <span />
+          )}
+          <Button onClick={onClose}>Done</Button>
         </div>
-
-        <div className="space-y-4 overflow-y-auto px-5 py-4">
+      }
+    >
           {/* Active-for-this-game status */}
           <div className="rounded bg-neutral-900/40 px-3 py-2 text-sm">
             <span className="text-neutral-400">Active for this game: </span>
@@ -199,12 +206,7 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
                           active ✓
                         </span>
                       ) : (
-                        <button
-                          onClick={() => useForGame(entry.version)}
-                          className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover"
-                        >
-                          Use for this game
-                        </button>
+                        <Button size="sm" onClick={() => useForGame(entry.version)}>Use for this game</Button>
                       )}
                     </li>
                   );
@@ -219,13 +221,9 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
               Install a version
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => fetchVersions()}
-                disabled={fetching}
-                className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover disabled:opacity-50"
-              >
+              <Button loading={fetching} onClick={() => fetchVersions()}>
                 {fetching ? 'Fetching…' : 'Fetch versions'}
-              </button>
+              </Button>
               <select
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
@@ -240,13 +238,9 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={installForGame}
-                disabled={!selected || !!installing}
-                className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
-              >
+              <Button variant="primary" disabled={!selected || !!installing} loading={!!installing} onClick={installForGame}>
                 {installing ? 'Installing…' : 'Install & use'}
-              </button>
+              </Button>
             </div>
             <label className="mt-2 flex items-center gap-2 text-xs text-neutral-400">
               <input type="checkbox" checked={showPrerelease} onChange={togglePrerelease} />
@@ -256,31 +250,6 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border-subtle px-5 py-3">
-          {onManageAll ? (
-            <button
-              onClick={() => {
-                onClose();
-                onManageAll();
-              }}
-              className="text-xs text-neutral-500 underline hover:text-neutral-300"
-            >
-              Manage all versions →
-            </button>
-          ) : (
-            <span />
-          )}
-          <button
-            onClick={onClose}
-            className="rounded bg-neutral-700 px-4 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover"
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

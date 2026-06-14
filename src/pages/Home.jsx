@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import GameCard from '../components/GameCard.jsx';
 import Icon from '../components/Icon.jsx';
 import DiscoverCard from '../components/DiscoverCard.jsx';
+import Modal from '../components/ui/Modal.jsx';
+import Button from '../components/ui/Button.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // Chip colors mirror the badges on the game cards.
@@ -65,67 +67,54 @@ function ManualAddModal({ open, onClose, onAdd }) {
     setName((cur) => cur || picked.suggestedName || '');
   }
 
-  if (!open) return null;
+  function submit() {
+    if (!name || !executablePath) return;
+    onAdd({ name, executablePath, version, store });
+    setName('');
+    setExecutablePath('');
+    setVersion('');
+  }
+
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60">
-      <div className="w-[28rem] rounded-lg bg-card p-5 ring-1 ring-white/10">
-        <h3 className="mb-4 text-lg font-semibold">Add game manually</h3>
-        <div className="space-y-3">
-          <Field label="Name" value={name} onChange={setName} placeholder="REPO" />
-          <label className="block text-sm">
-            <span className="mb-1 block text-neutral-400">Executable path</span>
-            <div className="flex gap-2">
-              <input
-                value={executablePath}
-                onChange={(e) => setExecutablePath(e.target.value)}
-                placeholder="C:/Games/REPO/REPO.exe"
-                className="flex-1 rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
-              />
-              <button
-                type="button"
-                onClick={browse}
-                title="Browse for executable"
-                className="flex items-center gap-1.5 rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-neutral-600"
-              >
-                <Icon name="folder-open" size={15} />
-                Browse
-              </button>
-            </div>
-          </label>
-          <Field label="Version (optional)" value={version} onChange={setVersion} placeholder="auto-detect" />
-          <label className="block text-sm">
-            <span className="mb-1 block text-neutral-400">Store</span>
-            <select
-              value={store}
-              onChange={(e) => setStore(e.target.value)}
-              className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm"
-            >
-              <option value="steam">Steam</option>
-              <option value="gog">GOG</option>
-              <option value="epic">Epic</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Add game manually"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={submit}>Add</Button>
+        </>
+      }
+    >
+      <Field label="Name" value={name} onChange={setName} placeholder="REPO" />
+      <label className="block text-sm">
+        <span className="mb-1 block text-neutral-400">Executable path</span>
+        <div className="flex gap-2">
+          <input
+            value={executablePath}
+            onChange={(e) => setExecutablePath(e.target.value)}
+            placeholder="C:/Games/REPO/REPO.exe"
+            className="flex-1 rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
+          />
+          <Button icon="folder-open" onClick={browse} title="Browse for executable">Browse</Button>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded bg-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-600">
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              if (!name || !executablePath) return;
-              onAdd({ name, executablePath, version, store });
-              setName('');
-              setExecutablePath('');
-              setVersion('');
-            }}
-            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-    </div>
+      </label>
+      <Field label="Version (optional)" value={version} onChange={setVersion} placeholder="auto-detect" />
+      <label className="block text-sm">
+        <span className="mb-1 block text-neutral-400">Store</span>
+        <select
+          value={store}
+          onChange={(e) => setStore(e.target.value)}
+          className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm"
+        >
+          <option value="steam">Steam</option>
+          <option value="gog">GOG</option>
+          <option value="epic">Epic</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+    </Modal>
   );
 }
 
@@ -317,21 +306,10 @@ export default function Home({ onOpenGame }) {
               </button>
             ))}
           </div>
-          <button
-            onClick={handleScan}
-            disabled={scanning}
-            className="flex items-center gap-2 rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 hover:bg-neutral-600 disabled:opacity-50"
-          >
-            <Icon name="refresh-cw" size={15} className={scanning ? 'animate-spin' : ''} />
+          <Button icon="refresh-cw" loading={scanning} onClick={handleScan}>
             {scanning ? 'Scanning…' : 'Rescan'}
-          </button>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90"
-          >
-            <Icon name="plus" size={16} />
-            Add game
-          </button>
+          </Button>
+          <Button variant="primary" icon="plus" onClick={() => setModalOpen(true)}>Add game</Button>
           </div>
         )}
       </div>

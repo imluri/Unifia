@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import Icon from './Icon.jsx';
+import Button from './ui/Button.jsx';
+import ConfirmDialog from './ui/ConfirmDialog.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 export default function PresetBar({ game }) {
@@ -8,19 +9,16 @@ export default function PresetBar({ game }) {
   const createPreset = useAppStore((s) => s.createPreset);
   const renamePreset = useAppStore((s) => s.renamePreset);
   const deletePreset = useAppStore((s) => s.deletePreset);
-  const updatePreset = useAppStore((s) => s.updatePreset);
   const switchPreset = useAppStore((s) => s.switchPreset);
   const exportPreset = useAppStore((s) => s.exportPreset);
   const importPreset = useAppStore((s) => s.importPreset);
-  const loadMods = useAppStore((s) => s.loadMods);
+  const pushToast = useAppStore((s) => s.pushToast);
 
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [code, setCode] = useState('');
-  const [error, setError] = useState(null);
-  // Inline naming (Electron disables window.prompt): mode is 'new' | 'rename' | null.
-  const [nameMode, setNameMode] = useState(null);
+  const [nameMode, setNameMode] = useState(null); // 'new' | 'rename' | null
   const [nameVal, setNameVal] = useState('');
 
   useEffect(() => {
@@ -33,11 +31,10 @@ export default function PresetBar({ game }) {
 
   async function run(fn) {
     setBusy(true);
-    setError(null);
     try {
       await fn();
     } catch (err) {
-      setError(err.message);
+      pushToast({ type: 'error', message: err.message || String(err) });
     } finally {
       setBusy(false);
     }
@@ -51,8 +48,13 @@ export default function PresetBar({ game }) {
   async function submitName() {
     const name = nameVal.trim();
     if (!name) return;
-    if (nameMode === 'new') await createPreset(game.id, name, true); // snapshot current
-    else if (nameMode === 'rename') await renamePreset(game.id, data.activeId, name);
+    if (nameMode === 'new') {
+      await createPreset(game.id, name, true, game);
+      pushToast({ type: 'success', message: `Switched to new preset “${name}”.` });
+    } else {
+      await renamePreset(game.id, data.activeId, name);
+      pushToast({ type: 'info', message: `Renamed to “${name}”.` });
+    }
     setNameMode(null);
     setNameVal('');
   }
@@ -64,7 +66,13 @@ export default function PresetBar({ game }) {
         <select
           value={data.activeId}
           disabled={busy}
-          onChange={(e) => run(() => switchPreset(game.id, e.target.value, game))}
+          onChange={(e) =>
+            run(async () => {
+              const name = data.presets.find((p) => p.id === e.target.value)?.name;
+              await switchPreset(game.id, e.target.value, game);
+              pushToast({ type: 'success', message: `Switched to “${name}”.` });
+            })
+          }
           className="rounded bg-neutral-800 px-2 py-1 text-sm text-neutral-100"
         >
           {data.presets.map((p) => (
@@ -72,33 +80,22 @@ export default function PresetBar({ game }) {
           ))}
         </select>
 
-        <button onClick={() => openName('new')} disabled={busy} className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
-          New
-        </button>
-        <button onClick={() => run(() => updatePreset(game.id, data.activeId))} disabled={busy}
-          title="Save the current mods into this preset"
-          className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
-          Save
-        </button>
-        <button onClick={() => openName('rename')} disabled={busy} className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
-          Rename
-        </button>
-        <button onClick={() => setConfirmDelete(true)} disabled={busy} className="rounded bg-neutral-800 px-2 py-1 text-xs text-red-300 hover:bg-red-900/60 disabled:opacity-50">
-          Delete
-        </button>
+        <Button size="sm" icon="plus" disabled={busy} onClick={() => openName('new')} title="New preset from current mods" />
+        <Button size="sm" icon="pencil" disabled={busy} onClick={() => openName('rename')} title="Rename preset" />
+        <Button size="sm" variant="danger" icon="trash-2" disabled={busy} onClick={() => setConfirmDelete(true)} title="Delete preset" />
 
         <span className="mx-1 h-4 w-px bg-border-default" />
 
-        <button onClick={() => run(async () => {
-          const c = await exportPreset(game.id, data.activeId);
-          await navigator.clipboard.writeText(c);
-        })} disabled={busy} className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
+        <Button size="sm" icon="copy" disabled={busy}
+          onClick={() => run(async () => {
+            const c = await exportPreset(game.id, data.activeId);
+            await navigator.clipboard.writeText(c);
+            pushToast({ type: 'success', message: 'Preset code copied.' });
+          })}>
           Copy code
-        </button>
-        <button onClick={() => setImporting((v) => !v)} disabled={busy}
-          className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover disabled:opacity-50">
-          Import code
-        </button>
+        </Button>
+        <Button size="sm" disabled={busy} onClick={() => setImporting((v) => !v)}>Import code</Button>
+        {busy && <span className="text-xs text-neutral-500">Working…</span>}
       </div>
 
       {nameMode && (
@@ -111,13 +108,10 @@ export default function PresetBar({ game }) {
             placeholder={nameMode === 'new' ? 'New preset name…' : 'Rename preset…'}
             className="flex-1 rounded bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
           />
-          <button onClick={() => run(submitName)} disabled={busy || !nameVal.trim()}
-            className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-contrast disabled:opacity-50">
+          <Button size="sm" variant="primary" disabled={busy || !nameVal.trim()} onClick={() => run(submitName)}>
             {nameMode === 'new' ? 'Create' : 'Save'}
-          </button>
-          <button onClick={() => setNameMode(null)} className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-100 hover:bg-surface-hover">
-            Cancel
-          </button>
+          </Button>
+          <Button size="sm" onClick={() => setNameMode(null)}>Cancel</Button>
         </div>
       )}
 
@@ -125,57 +119,33 @@ export default function PresetBar({ game }) {
         <div className="mt-2 flex items-center gap-2">
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="paste preset code…"
             className="flex-1 rounded bg-neutral-800 px-2 py-1 font-mono text-xs text-neutral-100 outline-none" />
-          <button onClick={() => run(async () => {
-            await importPreset(game.id, code.trim(), undefined, game);
-            setCode(''); setImporting(false);
-          })} disabled={busy || !code.trim()}
-            className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-contrast disabled:opacity-50">
-            {busy ? 'Importing…' : 'Import'}
-          </button>
+          <Button size="sm" variant="primary" loading={busy} disabled={busy || !code.trim()}
+            onClick={() => run(async () => {
+              await importPreset(game.id, code.trim(), undefined, game);
+              setCode(''); setImporting(false);
+              pushToast({ type: 'success', message: 'Imported preset.' });
+            })}>
+            Import
+          </Button>
         </div>
       )}
 
-      {busy && <p className="mt-1 text-xs text-neutral-500"><Icon name="refresh-cw" size={11} className="inline animate-spin" /> Working…</p>}
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
-
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-black/60"
-          onClick={() => setConfirmDelete(false)}
-        >
-          <div
-            className="w-80 rounded-lg bg-card p-5 ring-1 ring-white/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-neutral-100">Delete preset</h3>
-            <p className="mt-1 text-xs text-neutral-400">
-              Delete &quot;{active ? active.name : ''}&quot;? This removes its mod set.
-              {data.presets.length <= 1 && ' Since this is your only preset, it resets to an empty Default.'}
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="rounded bg-neutral-700 px-3 py-1.5 text-xs text-neutral-100 hover:bg-surface-hover"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() =>
-                  run(async () => {
-                    await deletePreset(game.id, data.activeId);
-                    await loadMods(game); // active preset changed — refresh the list
-                    setConfirmDelete(false);
-                  })
-                }
-                disabled={busy}
-                className="rounded bg-red-900/70 px-3 py-1.5 text-xs text-red-200 hover:bg-red-800 disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete preset"
+        danger
+        confirmLabel="Delete"
+        loading={busy}
+        message={`Delete “${active ? active.name : ''}”? This removes its mod set.${data.presets.length <= 1 ? ' Since this is your only preset, it resets to an empty Default.' : ''}`}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() =>
+          run(async () => {
+            await deletePreset(game.id, data.activeId, game);
+            setConfirmDelete(false);
+            pushToast({ type: 'info', message: 'Preset deleted.' });
+          })
+        }
+      />
     </div>
   );
 }
