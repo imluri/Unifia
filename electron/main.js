@@ -34,6 +34,9 @@ function createWindow() {
     minWidth: 940,
     minHeight: 600,
     backgroundColor: '#0f0f0f',
+    // Textless mark for the window/taskbar icon (the in-app sidebar keeps the
+    // full wordmark).
+    icon: path.join(__dirname, '..', 'unifia_logo_notext.png'),
     show: false,
     // Frameless: we draw our own title bar (see TitleBar.jsx). The window is
     // still resizable from its edges on Windows/Linux.
@@ -115,7 +118,13 @@ function registerIpc() {
   handle('unifia:updateGamePath', (gameId, newPath) => gameScanner.updateGamePath(gameId, newPath));
 
   // --- Launch / patch ---
-  handle('unifia:launchGame', (gameId, opts) => launcher.launchGame(gameId, opts || {}));
+  handle('unifia:launchGame', async (gameId, opts) => {
+    const res = await launcher.launchGame(gameId, opts || {});
+    // Get out of the way once the game is on its way up. Only on success — a
+    // failed launch throws before this and keeps the window up to show the error.
+    mainWindow?.minimize();
+    return res;
+  });
   handle('unifia:killGame', (gameId) => launcher.killGame(gameId));
   handle('unifia:isGameRunning', (gameId) => launcher.isRunning(gameId));
   handle('unifia:patchGame', (gameId, config) => patcher.patchGame(gameId, config || {}));
