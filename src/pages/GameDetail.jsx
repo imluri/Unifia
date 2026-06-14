@@ -227,11 +227,13 @@ export default function GameDetail({ game, onBack, goToModules }) {
             ))}
           </div>
 
-          {modsLoading && <p className="text-sm text-neutral-500">Loading mods…</p>}
-
           {tab === 'installed' ? (
             <div className="flex flex-col gap-2">
-              {installedMods.length === 0 ? (
+              {modsLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="skeleton h-[68px] rounded" />
+                ))
+              ) : installedMods.length === 0 ? (
                 <p className="text-sm text-neutral-500">No mods installed yet. Switch to Browse.</p>
               ) : (
                 installedMods.map((m) => <InstalledModRow key={m.fullName} game={game} mod={m} />)
@@ -265,12 +267,20 @@ export default function GameDetail({ game, onBack, goToModules }) {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {pageItems.map((m) => (
-                  <ModBrowseCard key={m.id} game={game} mod={m} readOnly={notInstalled} />
-                ))}
-              </div>
-              {browse.length === 0 ? (
+              {modsLoading ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="skeleton h-[92px] rounded" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {pageItems.map((m) => (
+                    <ModBrowseCard key={m.id} game={game} mod={m} readOnly={notInstalled} />
+                  ))}
+                </div>
+              )}
+              {modsLoading ? null : browse.length === 0 ? (
                 <p className="mt-2 text-sm text-neutral-500">No mods match your search or filters.</p>
               ) : browse.length > BROWSE_PAGE_SIZE ? (
                 <div className="mt-4 flex items-center justify-center gap-3 text-sm">

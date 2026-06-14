@@ -189,7 +189,9 @@ export const useAppStore = create((set, get) => ({
 
   // --- Mods ---
   async loadMods(game, { refresh = false } = {}) {
-    set({ modsLoading: true, modError: null });
+    // Clear the previous game's lists up front so opening a card shows a loading
+    // state, never a stale list or a premature "nothing installed" flash.
+    set({ modsLoading: true, modError: null, modList: [], modHubs: [], installedMods: [], modUpdates: [] });
     try {
       // Not-installed Discover games aren't in the store; fetch their mod list
       // by community directly instead of by gameId.
