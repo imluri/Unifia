@@ -6,7 +6,7 @@ function fmtCount(n) {
   return String(n || 0);
 }
 
-export default function ModBrowseCard({ game, mod }) {
+export default function ModBrowseCard({ game, mod, readOnly = false }) {
   const installMod = useAppStore((s) => s.installMod);
   const installed = useAppStore((s) => s.installedMods.find((m) => m.fullName === mod.fullName));
   const progress = useAppStore((s) => s.modProgress[mod.fullName]);
@@ -50,7 +50,7 @@ export default function ModBrowseCard({ game, mod }) {
         </p>
 
         <div className="mt-2 flex items-center gap-2">
-          {mod.canInstall ? (
+          {mod.canInstall && !readOnly ? (
             <>
               <select
                 value={version}
