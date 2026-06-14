@@ -47,8 +47,11 @@ function safeSegment(name) {
   return String(name).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
 }
 
-function modsDir(gameId) {
-  return gameId ? subdir('mods', safeSegment(gameId)) : subdir('mods');
+function modsDir(gameId, presetId) {
+  if (!gameId) return subdir('mods');
+  return presetId
+    ? subdir('mods', safeSegment(gameId), safeSegment(presetId))
+    : subdir('mods', safeSegment(gameId));
 }
 
 function cacheDir() {

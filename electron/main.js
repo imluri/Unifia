@@ -12,6 +12,7 @@ const profiles = require('./ipc/profiles');
 const modManager = require('./ipc/modManager');
 const pluginManager = require('./ipc/pluginManager');
 const multiplayer = require('./ipc/multiplayer');
+const presets = require('./ipc/presets');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -189,6 +190,20 @@ function registerIpc() {
   handle('unifia:applyInvite', (gameId, code) => multiplayer.applyInvite(gameId, code));
   handle('unifia:getConnectorPlayers', (gameId) => multiplayer.getConnectorPlayers(gameId));
   handle('unifia:saveGameProfile', (gameId, patch) => multiplayer.saveProfile(gameId, patch || {}));
+
+  // --- Mod presets ---
+  handle('unifia:listPresets', (gameId) => presets.list(gameId));
+  handle('unifia:createPreset', (gameId, name, fromActive) => presets.create(gameId, name, fromActive));
+  handle('unifia:renamePreset', (gameId, id, name) => presets.rename(gameId, id, name));
+  handle('unifia:deletePreset', (gameId, id) => presets.remove(gameId, id));
+  handle('unifia:updatePreset', (gameId, id) => presets.updateFromActive(gameId, id));
+  handle('unifia:switchPreset', (gameId, id) =>
+    presets.switchTo(gameId, id, (p) => emit('download-progress', { mod: true, ...p }))
+  );
+  handle('unifia:exportPreset', (gameId, id) => presets.exportPreset(gameId, id));
+  handle('unifia:importPreset', (gameId, code, name) =>
+    presets.importPreset(gameId, code, name, (p) => emit('download-progress', { mod: true, ...p }))
+  );
 
   // --- Window controls (custom frameless title bar) ---
   handle('unifia:windowMinimize', () => {

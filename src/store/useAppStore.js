@@ -188,6 +188,46 @@ export const useAppStore = create((set, get) => ({
     return status;
   },
 
+  // --- Mod presets ---
+  presets: {}, // gameId -> { activeId, presets: [{ id, name, updatedAt, modCount }] }
+  async loadPresets(gameId) {
+    const data = await api.listPresets(gameId);
+    set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    return data;
+  },
+  async createPreset(gameId, name, fromActive) {
+    const data = await api.createPreset(gameId, name, fromActive);
+    set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    return data;
+  },
+  async renamePreset(gameId, id, name) {
+    const data = await api.renamePreset(gameId, id, name);
+    set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+  },
+  async deletePreset(gameId, id) {
+    const data = await api.deletePreset(gameId, id);
+    set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+  },
+  async updatePreset(gameId, id) {
+    const data = await api.updatePreset(gameId, id);
+    set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+  },
+  async switchPreset(gameId, id, game) {
+    const res = await api.switchPreset(gameId, id);
+    set((s) => ({ presets: { ...s.presets, [gameId]: res.list } }));
+    if (game) await get().loadMods(game); // refresh installed list for the new active preset
+    return res;
+  },
+  async exportPreset(gameId, id) {
+    return api.exportPreset(gameId, id);
+  },
+  async importPreset(gameId, code, name, game) {
+    const res = await api.importPreset(gameId, code, name);
+    set((s) => ({ presets: { ...s.presets, [gameId]: res.list } }));
+    if (game) await get().loadMods(game);
+    return res;
+  },
+
   // --- Game art ---
   // Resolve art for a game (cached in main + memoized here). Returns the art
   // object or null. Safe to call repeatedly; in-flight/known results are reused.
@@ -226,6 +266,7 @@ export const useAppStore = create((set, get) => ({
       set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk });
       // Connector status powers the Installed-tab pinned row (installed games only).
       if (!notInstalled) get().refreshConnector(game.id);
+      if (!notInstalled) get().loadPresets(game.id);
       if (notInstalled) {
         // checkModUpdates calls findGame in main and would throw for a game the
         // store doesn't know about; there's nothing installed to update anyway.
