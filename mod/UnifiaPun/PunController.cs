@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+using BepInEx;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -54,6 +57,53 @@ namespace Unifia.Pun
                 HarmonyHooks.Apply(this, _profile.connectHookType, _profile.connectHookMethod);
             }
             // "manual" waits for the hotkey.
+            WriteStatus(); // "loaded" appears even before joining
+        }
+
+        // --- Edition status file (read by the launcher's Multiplayer tab) --------
+
+        private static string StatusPath()
+        {
+            return Path.Combine(Paths.ConfigPath, "unifia_status.json");
+        }
+
+        private static string JsonStr(string s)
+        {
+            return "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        }
+
+        private static string PlayerJson(Player p, string originalAppId)
+        {
+            string nick = p != null ? p.NickName : "";
+            return "{\"nick\":" + JsonStr(nick) + ",\"originalAppId\":" + JsonStr(originalAppId) + "}";
+        }
+
+        private void WriteStatus()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append("{");
+                sb.Append("\"loaded\":true,");
+                sb.Append("\"room\":").Append(JsonStr(_net != null ? _net.RoomCode : "")).Append(",");
+                sb.Append("\"joined\":").Append(PhotonNetwork.InRoom ? "true" : "false").Append(",");
+                sb.Append("\"self\":").Append(PlayerJson(PhotonNetwork.LocalPlayer, UnifiaPlugin.OriginalAppId)).Append(",");
+                sb.Append("\"players\":[");
+                if (PhotonNetwork.InRoom)
+                {
+                    var others = new List<string>();
+                    foreach (var p in PhotonNetwork.PlayerListOthers)
+                    {
+                        object appid;
+                        string oid = p.CustomProperties.TryGetValue("unifia_appid", out appid) ? appid as string : "";
+                        others.Add(PlayerJson(p, oid));
+                    }
+                    sb.Append(string.Join(",", others.ToArray()));
+                }
+                sb.Append("]}");
+                File.WriteAllText(StatusPath(), sb.ToString());
+            }
+            catch (System.Exception e) { UnifiaPlugin.Log.LogWarning($"status write failed: {e.Message}"); }
         }
 
         private void Update()
@@ -139,9 +189,22 @@ namespace Unifia.Pun
         {
             _activating = false;
             _reconnects = 0; // back in the room — reset the re-assert budget
+
+            // Self-report our original AppId (edition signal) + mark the nickname so
+            // the game's own player list shows who came in via Unifia.
+            var props = new ExitGames.Client.Photon.Hashtable { { "unifia_appid", UnifiaPlugin.OriginalAppId } };
+            PhotonNetwork.LocalPlayer.SetCustomProperties(props);
+            if (!string.IsNullOrEmpty(PhotonNetwork.NickName) && !PhotonNetwork.NickName.EndsWith(" [U]"))
+                PhotonNetwork.NickName = PhotonNetwork.NickName + " [U]";
+
             int count = PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.PlayerCount : 0;
             UnifiaPlugin.Log.LogInfo($"Joined Unifia room '{_net.RoomCode}' ({count} players).");
+            WriteStatus();
         }
+
+        public override void OnPlayerEnteredRoom(Player newPlayer) { WriteStatus(); }
+        public override void OnPlayerLeftRoom(Player otherPlayer) { WriteStatus(); }
+        public override void OnPlayerPropertiesUpdate(Player target, ExitGames.Client.Photon.Hashtable changedProps) { WriteStatus(); }
 
         public override void OnJoinRoomFailed(short returnCode, string message)
         {
@@ -162,6 +225,7 @@ namespace Unifia.Pun
             }
 
             UnifiaPlugin.Log.LogInfo($"Disconnected: {cause}");
+            WriteStatus(); // reflect joined:false
 
             // Something knocked us off (the game's own connect flow, another mod,
             // a transient drop). Re-assert our AppId + room and rejoin so the
