@@ -66,7 +66,11 @@ export default function ModBrowseCard({ game, mod, readOnly = false }) {
               <button
                 onClick={doInstall}
                 disabled={busy}
-                className="rounded bg-accent px-3 py-1 text-xs font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
+                className={`rounded px-3 py-1 text-xs font-medium transition active:scale-95 disabled:opacity-50 ${
+                  installed
+                    ? 'bg-neutral-700 text-neutral-100 hover:bg-surface-hover'
+                    : 'bg-accent text-accent-contrast hover:opacity-90'
+                }`}
               >
                 {installed ? 'Reinstall' : busy ? 'Installing…' : 'Install'}
               </button>
