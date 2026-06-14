@@ -210,18 +210,20 @@ export const useAppStore = create((set, get) => ({
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
     return data;
   },
-  async createPreset(gameId, name, fromActive) {
+  async createPreset(gameId, name, fromActive, game) {
     const data = await api.createPreset(gameId, name, fromActive);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    if (game) await get().loadMods(game); // new preset is active — refresh list
     return data;
   },
   async renamePreset(gameId, id, name) {
     const data = await api.renamePreset(gameId, id, name);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
   },
-  async deletePreset(gameId, id) {
+  async deletePreset(gameId, id, game) {
     const data = await api.deletePreset(gameId, id);
     set((s) => ({ presets: { ...s.presets, [gameId]: data } }));
+    if (game) await get().loadMods(game);
   },
   async updatePreset(gameId, id) {
     const data = await api.updatePreset(gameId, id);
