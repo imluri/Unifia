@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import ModBrowseCard from '../components/ModBrowseCard.jsx';
 import InstalledModRow from '../components/InstalledModRow.jsx';
+import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -17,6 +18,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
   const bepInExOnDisk = useAppStore((s) => s.bepInExOnDisk);
+  const connector = useAppStore((s) => s.connector[game?.id]);
   const installMod = useAppStore((s) => s.installMod);
   const launchGame = useAppStore((s) => s.launchGame);
   const removeGame = useAppStore((s) => s.removeGame);
@@ -229,6 +231,25 @@ export default function GameDetail({ game, onBack, goToModules }) {
 
           {tab === 'installed' ? (
             <div className="flex flex-col gap-2">
+              {/* Pinned, read-only: the Unifia connector is a system component,
+                  not a community mod. Manage it from the Lobby. */}
+              <div className="flex items-center justify-between gap-3 rounded border border-accent/30 bg-accent/5 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <ConnectorBadge />
+                  {connector?.pluginInstalled ? (
+                    <span className="rounded bg-green-900/60 px-2 py-0.5 text-xs text-green-300">
+                      Installed ✓
+                    </span>
+                  ) : (
+                    <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
+                      Not installed
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-neutral-500">Manage in Lobby →</span>
+              </div>
+              <div className="my-1 border-t border-border-subtle" />
+
               {modsLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="skeleton h-[68px] rounded" />
