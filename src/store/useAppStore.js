@@ -39,6 +39,11 @@ export const useAppStore = create((set, get) => ({
   modProgress: {}, // fullName -> { percent }
   bepInExOnDisk: false, // a BepInEx loader is already present in the game folder
 
+  // Unifia connector plugin status, keyed by gameId:
+  // { available, pluginInstalled, bepinexInstalled }. Backs both the Lobby and
+  // the Installed-tab status row. null for a gameId means "status check failed".
+  connector: {},
+
   // Discover (not-installed Thunderstore catalog games, for Home > Discover)
   discoverGames: [], // [{ id, name, community, installed:false }]
   discoverLoading: false,
@@ -110,6 +115,27 @@ export const useAppStore = create((set, get) => ({
   async removeGame(gameId) {
     await api.removeGame(gameId);
     set((s) => ({ games: s.games.filter((g) => g.id !== gameId) }));
+  },
+
+  // --- Unifia connector plugin (per game) ---
+  async refreshConnector(gameId) {
+    if (!gameId) return;
+    try {
+      const status = await api.getPluginStatus(gameId);
+      set((s) => ({ connector: { ...s.connector, [gameId]: status } }));
+    } catch {
+      set((s) => ({ connector: { ...s.connector, [gameId]: null } }));
+    }
+  },
+  async installConnector(gameId) {
+    const status = await api.installPlugin(gameId);
+    set((s) => ({ connector: { ...s.connector, [gameId]: status } }));
+    return status;
+  },
+  async uninstallConnector(gameId) {
+    const status = await api.uninstallPlugin(gameId);
+    set((s) => ({ connector: { ...s.connector, [gameId]: status } }));
+    return status;
   },
   async updateGamePath(gameId, newPath) {
     const updated = await api.updateGamePath(gameId, newPath);
@@ -206,6 +232,8 @@ export const useAppStore = create((set, get) => ({
         notInstalled ? Promise.resolve(false) : api.gameHasBepInEx(game.id),
       ]);
       set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk });
+      // Connector status powers the Installed-tab pinned row (installed games only).
+      if (!notInstalled) get().refreshConnector(game.id);
       if (notInstalled) {
         // checkModUpdates calls findGame in main and would throw for a game the
         // store doesn't know about; there's nothing installed to update anyway.
