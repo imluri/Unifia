@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('unifia', {
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
   checkModUpdates: (gameId) => invoke('unifia:checkModUpdates', gameId),
+  fetchDiscoverGames: (opts) => invoke('unifia:fetchDiscoverGames', opts),
+  fetchModListForCommunity: (community, opts) =>
+    invoke('unifia:fetchModListForCommunity', community, opts),
   openExternal: (url) => invoke('unifia:openExternal', url),
 
   // Unifia connector plugin (per-game)
