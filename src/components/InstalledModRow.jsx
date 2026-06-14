@@ -6,7 +6,21 @@ export default function InstalledModRow({ game, mod }) {
   const setModEnabled = useAppStore((s) => s.setModEnabled);
   const uninstallMod = useAppStore((s) => s.uninstallMod);
   const installMod = useAppStore((s) => s.installMod);
+  const refreshModUpdates = useAppStore((s) => s.refreshModUpdates);
+  const progress = useAppStore((s) => s.modProgress[mod.fullName]);
   const update = useAppStore((s) => s.modUpdates.find((u) => u.fullName === mod.fullName));
+  const [updating, setUpdating] = useState(false);
+
+  async function doUpdate() {
+    if (!update) return;
+    setUpdating(true);
+    try {
+      await installMod(game.id, mod.fullName, update.latest);
+      await refreshModUpdates(game.id); // clear the now-satisfied "Update →" badge
+    } finally {
+      setUpdating(false);
+    }
+  }
   // Thunderstore metadata (icon / display name / author / description) for this
   // installed mod, matched from the browse list by fullName. Undefined if the
   // list hasn't loaded or the mod is no longer published — we fall back to the
@@ -63,10 +77,11 @@ export default function InstalledModRow({ game, mod }) {
 
       {update && (
         <button
-          onClick={() => installMod(game.id, mod.fullName, update.latest)}
-          className="shrink-0 rounded bg-green-900/60 px-2 py-1 text-xs text-green-300 hover:bg-green-900/80"
+          onClick={doUpdate}
+          disabled={updating}
+          className="shrink-0 rounded bg-green-900/60 px-2 py-1 text-xs text-green-300 transition hover:bg-green-900/80 disabled:opacity-60"
         >
-          Update → {update.latest}
+          {updating ? `Updating… ${progress ? `${progress.percent}%` : ''}` : `Update → ${update.latest}`}
         </button>
       )}
       <button

@@ -315,6 +315,15 @@ export const useAppStore = create((set, get) => ({
     await api.uninstallMod(gameId, fullName);
     set({ installedMods: await api.getInstalledMods(gameId) });
   },
+  // Re-check which installed mods have newer versions (clears stale "Update →"
+  // badges after an update). Safe to call for installed games only.
+  async refreshModUpdates(gameId) {
+    try {
+      set({ modUpdates: await api.checkModUpdates(gameId) });
+    } catch {
+      /* keep the existing list on a transient failure */
+    }
+  },
   async setModEnabled(gameId, fullName, enabled) {
     await api.setModEnabled(gameId, fullName, enabled);
     set({ installedMods: await api.getInstalledMods(gameId) });
