@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import GameCard from '../components/GameCard.jsx';
 import Icon from '../components/Icon.jsx';
+import DiscoverCard from '../components/DiscoverCard.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // Chip colors mirror the badges on the game cards.
@@ -147,9 +148,16 @@ export default function Home({ onOpenGame }) {
   const gameProfiles = useAppStore((s) => s.gameProfiles);
   const rescan = useAppStore((s) => s.rescan);
   const addManualGame = useAppStore((s) => s.addManualGame);
+  const discoverGames = useAppStore((s) => s.discoverGames);
+  const discoverLoading = useAppStore((s) => s.discoverLoading);
+  const discoverError = useAppStore((s) => s.discoverError);
+  const loadDiscover = useAppStore((s) => s.loadDiscover);
 
   const [scanning, setScanning] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  // Library (installed) vs Discover (Thunderstore catalog) sections.
+  const [section, setSection] = useState('library');
+  const [discoverQuery, setDiscoverQuery] = useState('');
   // Library layout. Defaults to list view; remembered across sessions via
   // localStorage so it doesn't need an electron-store round-trip.
   const [view, setView] = useState(() => localStorage.getItem('unifia.libraryView') || 'list');
@@ -236,6 +244,19 @@ export default function Home({ onOpenGame }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [games, gameProfiles, q, filters]);
 
+  // Load the Thunderstore catalog the first time the user opens Discover.
+  useEffect(() => {
+    if (section === 'discover' && discoverGames.length === 0 && !discoverLoading) {
+      loadDiscover();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
+  const dq = discoverQuery.trim().toLowerCase();
+  const filteredDiscover = dq
+    ? discoverGames.filter((g) => g.name.toLowerCase().includes(dq))
+    : discoverGames;
+
   async function handleScan() {
     setScanning(true);
     try {
@@ -249,14 +270,32 @@ export default function Home({ onOpenGame }) {
     <div>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-100">Library</h1>
+          <h1 className="text-2xl font-bold text-neutral-100">
+            {section === 'library' ? 'Library' : 'Discover'}
+          </h1>
           <p className="text-sm text-neutral-500">
-            {anyActive
-              ? `${filteredGames.length} of ${games.length} games`
-              : `${games.length} games detected`}
+            {section === 'library'
+              ? anyActive
+                ? `${filteredGames.length} of ${games.length} games`
+                : `${games.length} games detected`
+              : 'Moddable games on Thunderstore you don’t have installed'}
           </p>
+          <div className="mt-3 inline-flex rounded-lg bg-neutral-800 p-1">
+            {['library', 'discover'].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSection(s)}
+                className={`rounded px-4 py-1.5 text-sm font-medium capitalize transition ${
+                  section === s ? 'bg-accent text-accent-contrast' : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2">
+        {section === 'library' && (
+          <div className="flex gap-2">
           {/* List / grid view toggle */}
           <div className="flex items-center rounded bg-neutral-800 p-0.5">
             {[
@@ -293,9 +332,12 @@ export default function Home({ onOpenGame }) {
             <Icon name="plus" size={16} />
             Add game
           </button>
-        </div>
+          </div>
+        )}
       </div>
 
+      {section === 'library' && (
+        <>
       {/* Search + filter popup */}
       {games.length > 0 && (
         <div className="mb-5 flex items-center gap-2">
@@ -429,6 +471,50 @@ export default function Home({ onOpenGame }) {
               onOpen={() => onOpenGame(game)}
             />
           ))}
+        </div>
+      )}
+        </>
+      )}
+
+      {section === 'discover' && (
+        <div>
+          <div className="relative mb-5 max-w-sm">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500">
+              <Icon name="search" size={15} />
+            </span>
+            <input
+              value={discoverQuery}
+              onChange={(e) => setDiscoverQuery(e.target.value)}
+              placeholder="Search Thunderstore games…"
+              className="w-full rounded bg-neutral-800 py-2 pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+
+          {discoverError ? (
+            <div className="rounded-lg border border-red-900/50 bg-red-900/20 p-6 text-center text-sm text-red-300">
+              Couldn&apos;t load Thunderstore games: {discoverError}
+              <div className="mt-3">
+                <button
+                  onClick={() => loadDiscover({ refresh: true })}
+                  className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : discoverLoading && discoverGames.length === 0 ? (
+            <p className="text-sm text-neutral-500">Loading Thunderstore catalog…</p>
+          ) : filteredDiscover.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
+              {discoverQuery ? 'No games match your search.' : 'No games to discover right now.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredDiscover.map((g) => (
+                <DiscoverCard key={g.id} game={g} onOpen={() => onOpenGame(g)} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

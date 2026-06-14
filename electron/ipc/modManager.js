@@ -9,6 +9,7 @@ const profiles = require('./profiles');
 const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
 const { aggregateMods } = require('./modHubs/aggregate');
 const { getProviders } = require('./modHubs');
+const { filterDiscover } = require('./modHubs/discover');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -50,6 +51,22 @@ async function fetchModList(gameId, opts) {
   const game = findGame(gameId);
   const profile = profiles.matchProfile(game);
   return aggregateMods(getProviders(), profile, opts || {});
+}
+
+// Thunderstore catalog games the user does NOT have installed (deduped against
+// installed games' mapped communities).
+async function getDiscoverGames(opts) {
+  const catalog = await thunderstore.fetchCommunities(opts || {});
+  const installedCommunities = (store.get('games') || [])
+    .map((g) => profiles.matchProfile(g).thunderstoreCommunity)
+    .filter(Boolean);
+  return filterDiscover(catalog, installedCommunities);
+}
+
+// Aggregate mods for a community directly (used for not-installed games that
+// aren't in the store).
+async function fetchModListForCommunity(community, opts) {
+  return aggregateMods(getProviders(), { thunderstoreCommunity: community }, opts || {});
 }
 
 // Download one version zip to a temp file, extract into its staging folder.
@@ -210,6 +227,8 @@ function deployMods(gameId, installPath) {
 
 module.exports = {
   fetchModList,
+  getDiscoverGames,
+  fetchModListForCommunity,
   getInstalledMods,
   installMod,
   uninstallMod,
