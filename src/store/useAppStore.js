@@ -38,6 +38,11 @@ export const useAppStore = create((set, get) => ({
   modError: null, // surfaced when the Thunderstore list fails to load
   modProgress: {}, // fullName -> { percent }
 
+  // Discover (not-installed Thunderstore catalog games, for Home > Discover)
+  discoverGames: [], // [{ id, name, community, installed:false }]
+  discoverLoading: false,
+  discoverError: null,
+
   // --- Bootstrap ---
   // Called by the LoadingScreen once its sequenced steps have gathered data.
   // Centralizes "we're live now": store the data, apply the theme, wire events.
@@ -177,20 +182,43 @@ export const useAppStore = create((set, get) => ({
   },
 
   // --- Mods ---
-  async loadMods(gameId, { refresh = false } = {}) {
+  async loadMods(game, { refresh = false } = {}) {
     set({ modsLoading: true, modError: null });
     try {
+      // Not-installed Discover games aren't in the store; fetch their mod list
+      // by community directly instead of by gameId.
+      const notInstalled = game.installed === false;
+      const listPromise = notInstalled
+        ? api.fetchModListForCommunity(game.community, { refresh })
+        : api.fetchModList(game.id, { refresh });
       const [{ hubs, packages }, installed] = await Promise.all([
-        api.fetchModList(gameId, { refresh }),
-        api.getInstalledMods(gameId),
+        listPromise,
+        api.getInstalledMods(game.id),
       ]);
       set({ modList: packages, modHubs: hubs, installedMods: installed });
-      api.checkModUpdates(gameId).then((u) => set({ modUpdates: u })).catch(() => {});
+      if (notInstalled) {
+        // checkModUpdates calls findGame in main and would throw for a game the
+        // store doesn't know about; there's nothing installed to update anyway.
+        set({ modUpdates: [] });
+      } else {
+        api.checkModUpdates(game.id).then((u) => set({ modUpdates: u })).catch(() => {});
+      }
     } catch (err) {
       // Don't leave the UI looking like "no mod source" on a fetch failure.
       set({ modError: err.message || String(err) });
     } finally {
       set({ modsLoading: false });
+    }
+  },
+  async loadDiscover({ refresh = false } = {}) {
+    set({ discoverLoading: true, discoverError: null });
+    try {
+      const games = await api.fetchDiscoverGames({ refresh });
+      set({ discoverGames: games });
+    } catch (err) {
+      set({ discoverError: err.message || String(err) });
+    } finally {
+      set({ discoverLoading: false });
     }
   },
   async installMod(gameId, fullName, version) {
