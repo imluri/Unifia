@@ -44,6 +44,21 @@ export const useAppStore = create((set, get) => ({
   discoverLoading: false,
   discoverError: null,
 
+  // Toast notifications: [{ id, type, message }]
+  toasts: [],
+  _toastSeq: 0,
+  pushToast(toast) {
+    const id = get()._toastSeq + 1;
+    set((s) => ({
+      _toastSeq: id,
+      toasts: [...s.toasts, { id, type: toast.type || 'info', message: String(toast.message || '') }],
+    }));
+    return id;
+  },
+  dismissToast(id) {
+    set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+  },
+
   // --- Bootstrap ---
   // Called by the LoadingScreen once its sequenced steps have gathered data.
   // Centralizes "we're live now": store the data, apply the theme, wire events.

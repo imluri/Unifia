@@ -8,6 +8,7 @@ import About from './pages/About.jsx';
 import LoadingScreen from './pages/LoadingScreen.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import TitleBar from './components/TitleBar.jsx';
+import Toaster from './components/Toaster.jsx';
 import Icon from './components/Icon.jsx';
 import logo from './assets/unifia_logo.png';
 
@@ -97,6 +98,7 @@ function MainLayout() {
       </div>
 
       <StatusBar />
+      <Toaster />
     </div>
   );
 }
