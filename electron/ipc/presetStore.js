@@ -1,4 +1,7 @@
+const fs = require('fs');
+const path = require('path');
 const { store } = require('../store');
+const { modsDir } = require('../paths');
 const L = require('./presetLogic');
 
 let _seq = 0;
@@ -18,13 +21,34 @@ function writeEntry(gameId, entry) {
   return entry;
 }
 
+// Move any pre-presets staged mod folders (mods/<gameId>/<mod>) into the new
+// Default preset folder (mods/<gameId>/<presetId>/<mod>) so existing installs
+// still deploy after the migration. Best-effort, runs once with the migration.
+function migrateStagingFolder(gameId, presetId) {
+  try {
+    const oldDir = modsDir(gameId); // mods/<gameId>
+    const newDir = modsDir(gameId, presetId); // mods/<gameId>/<presetId>
+    if (!fs.existsSync(oldDir)) return;
+    fs.mkdirSync(newDir, { recursive: true });
+    for (const entry of fs.readdirSync(oldDir, { withFileTypes: true })) {
+      // Skip the new preset folder itself; only move the old mod folders.
+      if (!entry.isDirectory() || entry.name === presetId) continue;
+      try {
+        fs.renameSync(path.join(oldDir, entry.name), path.join(newDir, entry.name));
+      } catch { /* locked/in-use — leave it, deploy will reinstall */ }
+    }
+  } catch { /* best-effort migration */ }
+}
+
 // Resolve the game's preset entry, migrating the legacy gameMods map on first
 // access (idempotent — only when no entry exists yet).
 function getEntry(gameId) {
   const all = readAll();
   if (all[gameId]) return all[gameId];
   const legacy = (store.get('gameMods') || {})[gameId] || {};
-  return writeEntry(gameId, L.migrate(legacy, genId));
+  const entry = L.migrate(legacy, genId);
+  migrateStagingFolder(gameId, entry.activeId);
+  return writeEntry(gameId, entry);
 }
 
 function getActiveId(gameId) {
