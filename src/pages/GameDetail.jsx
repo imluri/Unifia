@@ -7,6 +7,7 @@ import MultiplayerTab from './MultiplayerTab.jsx';
 import PresetBar from '../components/PresetBar.jsx';
 import InviteModal from '../components/InviteModal.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
+import Button from '../components/ui/Button.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // Big communities return thousands of mods; rendering them all at once janks the
@@ -27,6 +28,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const removeGame = useAppStore((s) => s.removeGame);
   const updateGamePath = useAppStore((s) => s.updateGamePath);
   const refreshBepInEx = useAppStore((s) => s.refreshBepInEx);
+  const pushToast = useAppStore((s) => s.pushToast);
 
   const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
   const [bepBusy, setBepBusy] = useState(false);
@@ -37,7 +39,6 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [page, setPage] = useState(1);
   const [moduleOpen, setModuleOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     if (game) loadMods(game);
@@ -86,13 +87,14 @@ export default function GameDetail({ game, onBack, goToModules }) {
   async function handleLaunch() {
     try {
       const res = await launchGame(game.id);
-      setNotice(
-        res.alreadyRunning
+      pushToast({
+        type: 'success',
+        message: res.alreadyRunning
           ? `${game.name} is already running.`
-          : `Launched ${game.name}${res.deployedModule ? ` with ${res.deployedModule.module} ${res.deployedModule.version}` : ''}.`
-      );
+          : `Launched ${game.name}${res.deployedModule ? ` with ${res.deployedModule.module} ${res.deployedModule.version}` : ''}.`,
+      });
     } catch (err) {
-      setNotice(`Launch failed: ${err.message}`);
+      pushToast({ type: 'error', message: `Launch failed: ${err.message}` });
     }
   }
   async function handleRemove() {
@@ -108,9 +110,9 @@ export default function GameDetail({ game, onBack, goToModules }) {
       // list (so a slow/failed mod fetch can't leave stale loader status).
       await refreshBepInEx(game.id);
       await loadMods(game);
-      setNotice(`Folder updated to ${picked.path}.`);
+      pushToast({ type: 'success', message: `Folder updated to ${picked.path}.` });
     } catch (err) {
-      setNotice(`Couldn't change folder: ${err.message}`);
+      pushToast({ type: 'error', message: `Couldn't change folder: ${err.message}` });
     }
   }
 
@@ -133,45 +135,18 @@ export default function GameDetail({ game, onBack, goToModules }) {
       {!notInstalled && (
         <>
           <div className="mb-5 flex items-center gap-2">
-            <button
-              onClick={handleLaunch}
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
-            >
-              Launch
-            </button>
-            <button
-              onClick={() => setModuleOpen(true)}
-              className="rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
-            >
-              Module
-            </button>
+            <Button variant="primary" icon="play" onClick={handleLaunch}>Launch</Button>
+            <Button icon="package" onClick={() => setModuleOpen(true)}>Module</Button>
             {game.manual && (
-              <button
-                onClick={handleChangeFolder}
-                title="Point this game at a different install folder"
-                className="flex items-center gap-1.5 rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
-              >
-                <Icon name="folder-open" size={15} /> Change folder
-              </button>
+              <Button icon="folder-open" onClick={handleChangeFolder} title="Point this game at a different install folder">
+                Change folder
+              </Button>
             )}
-            <button
-              onClick={() => setInviteOpen(true)}
-              title="Generate or paste a multiplayer invite code"
-              className="ml-auto flex items-center gap-1.5 rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
-            >
-              <Icon name="globe" size={15} /> Invite
-            </button>
-            <button
-              onClick={handleRemove}
-              title="Remove from library"
-              className="flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
-            >
-              <Icon name="x" size={15} /> Remove
-            </button>
+            <Button className="ml-auto" icon="globe" onClick={() => setInviteOpen(true)} title="Generate or paste a multiplayer invite code">
+              Invite
+            </Button>
+            <Button variant="danger" icon="x" onClick={handleRemove} title="Remove from library">Remove</Button>
           </div>
-          {notice && (
-            <div className="mb-4 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-200">{notice}</div>
-          )}
         </>
       )}
       {notInstalled && (
@@ -260,7 +235,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-neutral-500">Manage in Multiplayer →</span>
+                <Button variant="ghost" size="sm" onClick={() => setTab('multiplayer')}>Manage in Multiplayer →</Button>
               </div>
               <div className="my-1 border-t border-border-subtle" />
 
@@ -269,7 +244,10 @@ export default function GameDetail({ game, onBack, goToModules }) {
                   <div key={i} className="skeleton h-[68px] rounded" />
                 ))
               ) : installedMods.length === 0 ? (
-                <p className="text-sm text-neutral-500">No mods installed yet. Switch to Browse.</p>
+                <div className="flex items-center gap-1 text-sm text-neutral-500">
+                  No mods installed yet.
+                  <Button variant="ghost" size="sm" onClick={() => setTab('browse')}>Browse mods</Button>
+                </div>
               ) : (
                 installedMods.map((m) => <InstalledModRow key={m.fullName} game={game} mod={m} />)
               )}
