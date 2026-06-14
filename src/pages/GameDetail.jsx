@@ -20,6 +20,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const installMod = useAppStore((s) => s.installMod);
   const launchGame = useAppStore((s) => s.launchGame);
   const removeGame = useAppStore((s) => s.removeGame);
+  const updateGamePath = useAppStore((s) => s.updateGamePath);
 
   const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
   const [bepBusy, setBepBusy] = useState(false);
@@ -91,6 +92,18 @@ export default function GameDetail({ game, onBack, goToModules }) {
     await removeGame(game.id);
     onBack();
   }
+  async function handleChangeFolder() {
+    const picked = await window.unifia.pickDirectory();
+    if (!picked) return;
+    try {
+      await updateGamePath(game.id, picked.path);
+      // Re-detect BepInEx / mods against the new folder.
+      await loadMods(game);
+      setNotice(`Folder updated to ${picked.path}.`);
+    } catch (err) {
+      setNotice(`Couldn't change folder: ${err.message}`);
+    }
+  }
 
   return (
     <div>
@@ -123,6 +136,15 @@ export default function GameDetail({ game, onBack, goToModules }) {
             >
               Module
             </button>
+            {game.manual && (
+              <button
+                onClick={handleChangeFolder}
+                title="Point this game at a different install folder"
+                className="flex items-center gap-1.5 rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
+              >
+                <Icon name="folder-open" size={15} /> Change folder
+              </button>
+            )}
             <button
               onClick={handleRemove}
               title="Remove from library"

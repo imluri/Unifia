@@ -428,11 +428,36 @@ function removeGame(gameId) {
   return { gameId, removed: true };
 }
 
+// Re-point a manually-added game at a new install folder. The executable is
+// assumed to keep its filename inside the new directory; engine info is
+// re-detected there. The user-entered name/version are preserved.
+function updateGamePath(gameId, newInstallPath) {
+  if (!newInstallPath) throw new Error('A folder is required');
+  const games = store.get('games') || [];
+  const game = games.find((g) => g.id === gameId);
+  if (!game) throw new Error(`Unknown game: ${gameId}`);
+
+  const exeName = game.executablePath ? path.basename(game.executablePath) : null;
+  const executablePath = exeName ? path.join(newInstallPath, exeName) : game.executablePath;
+  const engineInfo = detectEngine(newInstallPath);
+  const updated = {
+    ...game,
+    installPath: newInstallPath,
+    executablePath,
+    engine: engineInfo.engine,
+    engineName: engineInfo.engineName,
+    unityBackend: engineInfo.backend,
+  };
+  store.set('games', games.map((g) => (g.id === gameId ? updated : g)));
+  return updated;
+}
+
 module.exports = {
   scanGames,
   scanSteamGames,
   getSteamLibraries,
   addManualGame,
   removeGame,
+  updateGamePath,
   detectVersion,
 };

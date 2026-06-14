@@ -111,6 +111,11 @@ export const useAppStore = create((set, get) => ({
     await api.removeGame(gameId);
     set((s) => ({ games: s.games.filter((g) => g.id !== gameId) }));
   },
+  async updateGamePath(gameId, newPath) {
+    const updated = await api.updateGamePath(gameId, newPath);
+    set((s) => ({ games: s.games.map((g) => (g.id === gameId ? updated : g)) }));
+    return updated;
+  },
 
   // --- Modules ---
   async refreshModules() {

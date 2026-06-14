@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('unifia', {
   getSteamLibraries: () => invoke('unifia:getSteamLibraries'),
   addManualGame: (game) => invoke('unifia:addManualGame', game),
   removeGame: (gameId) => invoke('unifia:removeGame', gameId),
+  updateGamePath: (gameId, newPath) => invoke('unifia:updateGamePath', gameId, newPath),
 
   // Launch / patch
   launchGame: (gameId, opts) => invoke('unifia:launchGame', gameId, opts),

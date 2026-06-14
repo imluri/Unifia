@@ -112,6 +112,7 @@ function registerIpc() {
   handle('unifia:getSteamLibraries', () => gameScanner.getSteamLibraries());
   handle('unifia:addManualGame', (game) => gameScanner.addManualGame(game));
   handle('unifia:removeGame', (gameId) => gameScanner.removeGame(gameId));
+  handle('unifia:updateGamePath', (gameId, newPath) => gameScanner.updateGamePath(gameId, newPath));
 
   // --- Launch / patch ---
   handle('unifia:launchGame', (gameId, opts) => launcher.launchGame(gameId, opts || {}));
