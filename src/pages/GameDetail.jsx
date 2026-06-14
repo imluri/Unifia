@@ -4,6 +4,7 @@ import ModBrowseCard from '../components/ModBrowseCard.jsx';
 import InstalledModRow from '../components/InstalledModRow.jsx';
 import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import MultiplayerTab from './MultiplayerTab.jsx';
+import PresetBar from '../components/PresetBar.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -234,6 +235,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
             <MultiplayerTab game={game} />
           ) : tab === 'installed' ? (
             <div className="flex flex-col gap-2">
+              <PresetBar game={game} />
               {/* Pinned, read-only: the Unifia connector is a system component,
                   not a community mod. Manage it from the Lobby. */}
               <div className="flex items-center justify-between gap-3 rounded border border-accent/30 bg-accent/5 px-3 py-2.5">
