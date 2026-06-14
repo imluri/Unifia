@@ -229,6 +229,15 @@ export const useAppStore = create((set, get) => ({
       set({ discoverLoading: false });
     }
   },
+  // Detect a BepInEx loader in the game folder, independent of the mod-list
+  // fetch (which can be slow or fail). Always safe to call for installed games.
+  async refreshBepInEx(gameId) {
+    try {
+      set({ bepInExOnDisk: await api.gameHasBepInEx(gameId) });
+    } catch {
+      set({ bepInExOnDisk: false });
+    }
+  },
   async installMod(gameId, fullName, version) {
     await api.installMod(gameId, fullName, version);
     // Drop the now-finished progress entry so it can't be read stale later.

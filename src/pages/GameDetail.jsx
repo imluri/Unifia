@@ -21,6 +21,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const launchGame = useAppStore((s) => s.launchGame);
   const removeGame = useAppStore((s) => s.removeGame);
   const updateGamePath = useAppStore((s) => s.updateGamePath);
+  const refreshBepInEx = useAppStore((s) => s.refreshBepInEx);
 
   const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
   const [bepBusy, setBepBusy] = useState(false);
@@ -97,7 +98,9 @@ export default function GameDetail({ game, onBack, goToModules }) {
     if (!picked) return;
     try {
       await updateGamePath(game.id, picked.path);
-      // Re-detect BepInEx / mods against the new folder.
+      // Always re-detect BepInEx against the new folder, independent of the mod
+      // list (so a slow/failed mod fetch can't leave stale loader status).
+      await refreshBepInEx(game.id);
       await loadMods(game);
       setNotice(`Folder updated to ${picked.path}.`);
     } catch (err) {
