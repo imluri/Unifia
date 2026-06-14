@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx';
 import ModBrowseCard from '../components/ModBrowseCard.jsx';
 import InstalledModRow from '../components/InstalledModRow.jsx';
 import ConnectorBadge from '../components/ConnectorBadge.jsx';
+import MultiplayerTab from './MultiplayerTab.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -216,7 +217,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
             </div>
           )}
           <div className="mb-5 inline-flex rounded-lg bg-neutral-800 p-1">
-            {(notInstalled ? ['browse'] : ['installed', 'browse']).map((t) => (
+            {(notInstalled ? ['browse'] : ['installed', 'browse', 'multiplayer']).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -229,7 +230,9 @@ export default function GameDetail({ game, onBack, goToModules }) {
             ))}
           </div>
 
-          {tab === 'installed' ? (
+          {tab === 'multiplayer' ? (
+            <MultiplayerTab game={game} />
+          ) : tab === 'installed' ? (
             <div className="flex flex-col gap-2">
               {/* Pinned, read-only: the Unifia connector is a system component,
                   not a community mod. Manage it from the Lobby. */}
@@ -246,7 +249,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-neutral-500">Manage in Lobby →</span>
+                <span className="text-xs text-neutral-500">Manage in Multiplayer →</span>
               </div>
               <div className="my-1 border-t border-border-subtle" />
 

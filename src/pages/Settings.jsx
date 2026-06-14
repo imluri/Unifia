@@ -259,21 +259,6 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* Photon */}
-      <section className="mb-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Photon (REPO)</h2>
-        <TextField
-          label="AppId Realtime"
-          value={draft.photonAppId}
-          onChange={(v) => setDraft((d) => ({ ...d, photonAppId: v }))}
-          hint="Written into BepInEx/config/com.photon.unity3d.cfg when patching."
-        />
-        <TextField
-          label="AppId Voice"
-          value={draft.photonVoiceAppId}
-          onChange={(v) => setDraft((d) => ({ ...d, photonVoiceAppId: v }))}
-        />
-      </section>
 
       {/* General */}
       <section className="mb-6 space-y-3">

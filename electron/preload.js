@@ -12,9 +12,6 @@ async function invoke(channel, ...args) {
 // Main pushes all events on one channel tagged with a name. We fan them out to
 // per-event subscriber sets so the React side gets clean onX(callback) APIs.
 const listeners = {
-  'player-joined': new Set(),
-  'player-left': new Set(),
-  'version-mismatch': new Set(),
   'download-progress': new Set(),
   'window-maximized': new Set(),
 };
@@ -54,6 +51,13 @@ contextBridge.exposeInMainWorld('unifia', {
   fetchModList: (gameId, opts) => invoke('unifia:fetchModList', gameId, opts),
   getInstalledMods: (gameId) => invoke('unifia:getInstalledMods', gameId),
   gameHasBepInEx: (gameId) => invoke('unifia:gameHasBepInEx', gameId),
+
+  // Multiplayer (share-code)
+  buildInvite: (gameId, opts) => invoke('unifia:buildInvite', gameId, opts),
+  parseInvite: (code) => invoke('unifia:parseInvite', code),
+  applyInvite: (gameId, code) => invoke('unifia:applyInvite', gameId, code),
+  getConnectorPlayers: (gameId) => invoke('unifia:getConnectorPlayers', gameId),
+  saveGameProfile: (gameId, patch) => invoke('unifia:saveGameProfile', gameId, patch),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
@@ -84,13 +88,6 @@ contextBridge.exposeInMainWorld('unifia', {
   clearArtCache: (gameId) => invoke('unifia:clearArtCache', gameId),
   testSteamGridKey: (key) => invoke('unifia:testSteamGridKey', key),
 
-  // Network / lobby
-  getLocalIP: () => invoke('unifia:getLocalIP'),
-  hostSession: (gameId, port) => invoke('unifia:hostSession', gameId, port),
-  joinSession: (gameId, ip, port) => invoke('unifia:joinSession', gameId, ip, port),
-  stopSession: () => invoke('unifia:stopSession'),
-  getPlayers: () => invoke('unifia:getPlayers'),
-
   // Window controls for the custom frameless title bar
   window: {
     minimize: () => invoke('unifia:windowMinimize'),
@@ -107,8 +104,5 @@ contextBridge.exposeInMainWorld('unifia', {
   getDataDir: () => invoke('unifia:getDataDir'),
 
   // Event subscriptions (return unsubscribe fns)
-  onPlayerJoined: (cb) => subscribe('player-joined', cb),
-  onPlayerLeft: (cb) => subscribe('player-left', cb),
-  onVersionMismatch: (cb) => subscribe('version-mismatch', cb),
   onDownloadProgress: (cb) => subscribe('download-progress', cb),
 });

@@ -16,12 +16,18 @@ namespace Unifia.Pun
         public const string Version = "0.1.0";
 
         internal static ManualLogSource Log;
+        // The game's baked-in Photon AppId, captured before anything overrides it —
+        // this is the edition signal (official copy vs crack carry different ids).
+        internal static string OriginalAppId = "";
         private GameObject _controller;
 
         private void Awake()
         {
             Log = Logger;
             Log.LogInfo($"{Name} {Version} loaded.");
+
+            try { OriginalAppId = Photon.Pun.PhotonNetwork.PhotonServerSettings.AppSettings.AppIdRealtime; }
+            catch { OriginalAppId = ""; }
 
             var net = UnifiaConfig.LoadNetConfig();
             if (net == null || !net.HasRoom)

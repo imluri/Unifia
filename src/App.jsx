@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import GameDetail from './pages/GameDetail.jsx';
 import { useAppStore } from './store/useAppStore.js';
 import Home from './pages/Home.jsx';
-import Lobby from './pages/Lobby.jsx';
 import Modules from './pages/Modules.jsx';
 import Settings from './pages/Settings.jsx';
 import About from './pages/About.jsx';
@@ -14,7 +13,6 @@ import logo from './assets/unifia_logo.png';
 
 const NAV = [
   { id: 'home', label: 'Home', icon: 'house' },
-  { id: 'lobby', label: 'Lobby', icon: 'globe' },
   { id: 'modules', label: 'Modules', icon: 'package' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'about', label: 'About', icon: 'info' },
@@ -38,8 +36,6 @@ function MainLayout() {
       );
     }
     switch (page) {
-      case 'lobby':
-        return <Lobby />;
       case 'modules':
         return <Modules />;
       case 'settings':

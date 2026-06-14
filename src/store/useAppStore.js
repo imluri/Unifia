@@ -18,11 +18,6 @@ export const useAppStore = create((set, get) => ({
   settings: null,
   dataDir: '',
 
-  // Lobby/session state
-  session: null, // { role: 'host'|'client', ... }
-  players: [],
-  versionMismatch: null,
-
   // Download progress keyed by `${moduleName}@${version}`
   downloads: {},
 
@@ -93,9 +88,6 @@ export const useAppStore = create((set, get) => ({
         set((s) => ({ downloads: { ...s.downloads, [key]: p } }));
       }
     });
-    api.onVersionMismatch((payload) => set({ versionMismatch: payload }));
-    api.onPlayerJoined(() => get().refreshPlayers());
-    api.onPlayerLeft(() => get().refreshPlayers());
   },
 
   // --- Games ---
@@ -174,26 +166,26 @@ export const useAppStore = create((set, get) => ({
     if (partial.theme) applyTheme(partial.theme);
   },
 
-  // --- Lobby / session ---
-  async hostSession(gameId, port) {
-    const res = await api.hostSession(gameId, port);
-    set({ session: { role: 'host', ...res }, versionMismatch: null });
-    get().refreshPlayers();
-    return res;
+  // --- Multiplayer (share-code) ---
+  connectorPlayers: {}, // gameId -> parsed status (or null)
+  async buildInvite(gameId, opts) {
+    return api.buildInvite(gameId, opts);
   },
-  async joinSession(gameId, ip, port) {
-    const res = await api.joinSession(gameId, ip, port);
-    set({ session: { role: 'client', ...res }, players: res.players || [] });
-    return res;
+  async parseInvite(code) {
+    return api.parseInvite(code);
   },
-  async stopSession() {
-    await api.stopSession();
-    set({ session: null, players: [] });
+  async applyInvite(gameId, code) {
+    return api.applyInvite(gameId, code);
   },
-  async refreshPlayers() {
-    if (!api) return;
-    const players = await api.getPlayers();
-    set({ players });
+  async saveGameProfile(gameId, patch) {
+    const profile = await api.saveGameProfile(gameId, patch);
+    set((s) => ({ gameProfiles: { ...s.gameProfiles, [gameId]: profile } }));
+    return profile;
+  },
+  async refreshConnectorPlayers(gameId) {
+    const status = await api.getConnectorPlayers(gameId);
+    set((s) => ({ connectorPlayers: { ...s.connectorPlayers, [gameId]: status } }));
+    return status;
   },
 
   // --- Game art ---
