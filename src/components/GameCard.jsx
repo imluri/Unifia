@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import VersionBadge from './VersionBadge.jsx';
-import Icon from './Icon.jsx';
+import GameIcon from './GameIcon.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // Per-store accent colors for the badge in the card header.
@@ -22,22 +22,6 @@ function ModuleStatus({ profile }) {
     >
       {ready ? 'BepInEx ready' : 'No module'}
     </span>
-  );
-}
-
-// Shared 40x40 game icon (or placeholder) used by both layouts.
-function GameIcon({ src, onError }) {
-  return src ? (
-    <img
-      src={src}
-      alt=""
-      onError={onError}
-      className="h-10 w-10 shrink-0 rounded object-cover ring-1 ring-border-default"
-    />
-  ) : (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-neutral-700 text-neutral-500">
-      <Icon name="package" size={18} />
-    </div>
   );
 }
 
