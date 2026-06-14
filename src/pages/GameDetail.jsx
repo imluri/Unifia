@@ -246,7 +246,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-neutral-500">Manage in Lobby →</span>
+                <span className="text-xs text-neutral-500">Manage in Multiplayer →</span>
               </div>
               <div className="my-1 border-t border-border-subtle" />
 

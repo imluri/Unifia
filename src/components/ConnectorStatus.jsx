@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import ConnectorBadge from './ConnectorBadge.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
-// Connector install/status surface for a single game, used by both Lobby tabs.
-// The connector is what repoints Photon at the shared room, so the Lobby is its
-// home. Renders nothing until a game is selected.
+// Connector install/status surface for a single game, used in the game's
+// Multiplayer tab. The connector is what repoints Photon at the shared room.
+// Renders nothing until a game is selected.
 export default function ConnectorStatus({ gameId }) {
   const status = useAppStore((s) => s.connector[gameId]);
   const refreshConnector = useAppStore((s) => s.refreshConnector);
