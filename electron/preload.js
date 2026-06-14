@@ -58,6 +58,16 @@ contextBridge.exposeInMainWorld('unifia', {
   applyInvite: (gameId, code) => invoke('unifia:applyInvite', gameId, code),
   getConnectorPlayers: (gameId) => invoke('unifia:getConnectorPlayers', gameId),
   saveGameProfile: (gameId, patch) => invoke('unifia:saveGameProfile', gameId, patch),
+
+  // Mod presets
+  listPresets: (gameId) => invoke('unifia:listPresets', gameId),
+  createPreset: (gameId, name, fromActive) => invoke('unifia:createPreset', gameId, name, fromActive),
+  renamePreset: (gameId, id, name) => invoke('unifia:renamePreset', gameId, id, name),
+  deletePreset: (gameId, id) => invoke('unifia:deletePreset', gameId, id),
+  updatePreset: (gameId, id) => invoke('unifia:updatePreset', gameId, id),
+  switchPreset: (gameId, id) => invoke('unifia:switchPreset', gameId, id),
+  exportPreset: (gameId, id) => invoke('unifia:exportPreset', gameId, id),
+  importPreset: (gameId, code, name) => invoke('unifia:importPreset', gameId, code, name),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
