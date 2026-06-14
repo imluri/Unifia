@@ -116,7 +116,7 @@ export default function InviteModal({ game, open, onClose }) {
               onChange={(e) => setAppId(e.target.value)}
               onBlur={saveAppId}
               placeholder="xxxxxxxx-xxxx-…"
-              className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
             />
           </label>
 
@@ -128,7 +128,7 @@ export default function InviteModal({ game, open, onClose }) {
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 placeholder="room code (auto)"
-                className="w-40 rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:ring-1 focus:ring-accent"
+                className="w-40 rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
               />
               <button
                 onClick={onGenerate}
@@ -166,7 +166,7 @@ export default function InviteModal({ game, open, onClose }) {
               onChange={(e) => setPaste(e.target.value)}
               rows={3}
               placeholder="paste a friend's invite code…"
-              className="w-full resize-none rounded bg-neutral-800 px-2 py-1.5 font-mono text-xs text-neutral-100 outline-none focus:ring-1 focus:ring-accent"
+              className="w-full resize-none rounded bg-neutral-800 px-2 py-1.5 font-mono text-xs text-neutral-100 outline-none"
             />
             <button
               onClick={onImport}

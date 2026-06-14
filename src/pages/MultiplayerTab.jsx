@@ -45,7 +45,7 @@ export default function MultiplayerTab({ game }) {
             onChange={(e) => setOfficialAppId(e.target.value)}
             onBlur={saveOfficialAppId}
             placeholder="leave blank to group by raw AppId"
-            className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
           />
         </label>
       </section>

@@ -281,7 +281,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search mods…"
-                  className="flex-1 rounded bg-neutral-800 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 rounded bg-neutral-800 px-3 py-2 text-sm outline-none"
                 />
                 <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded bg-neutral-800 px-2 py-2 text-sm">
                   <option value="downloads">Most downloaded</option>

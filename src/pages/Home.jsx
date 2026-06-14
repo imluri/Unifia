@@ -79,7 +79,7 @@ function ManualAddModal({ open, onClose, onAdd }) {
                 value={executablePath}
                 onChange={(e) => setExecutablePath(e.target.value)}
                 placeholder="C:/Games/REPO/REPO.exe"
-                className="flex-1 rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-accent"
+                className="flex-1 rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
               />
               <button
                 type="button"
@@ -137,7 +137,7 @@ function Field({ label, value, onChange, placeholder }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-accent"
+        className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
       />
     </label>
   );
@@ -349,7 +349,7 @@ export default function Home({ onOpenGame }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search games…"
-              className="w-full rounded bg-neutral-800 py-2 pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded bg-neutral-800 py-2 pl-8 pr-3 text-sm outline-none"
             />
           </div>
 
@@ -486,7 +486,7 @@ export default function Home({ onOpenGame }) {
               value={discoverQuery}
               onChange={(e) => setDiscoverQuery(e.target.value)}
               placeholder="Search Thunderstore games…"
-              className="w-full rounded bg-neutral-800 py-2 pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded bg-neutral-800 py-2 pl-8 pr-3 text-sm outline-none"
             />
           </div>
 

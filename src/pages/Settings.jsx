@@ -13,7 +13,7 @@ function TextField({ label, value, onChange, placeholder, hint, type = 'text', o
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           placeholder={placeholder}
-          className="w-full rounded bg-neutral-800 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded bg-neutral-800 px-3 py-2 text-sm outline-none"
         />
         {/* Optional folder picker: replaces the field value with the chosen path. */}
         {onBrowse && (

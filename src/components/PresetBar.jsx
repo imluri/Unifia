@@ -110,7 +110,7 @@ export default function PresetBar({ game }) {
             onChange={(e) => setNameVal(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && run(submitName)}
             placeholder={nameMode === 'new' ? 'New preset name…' : 'Rename preset…'}
-            className="flex-1 rounded bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none focus:ring-1 focus:ring-accent"
+            className="flex-1 rounded bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
           />
           <button onClick={() => run(submitName)} disabled={busy || !nameVal.trim()}
             className="rounded bg-accent px-2 py-1 text-xs font-medium text-accent-contrast disabled:opacity-50">
@@ -125,7 +125,7 @@ export default function PresetBar({ game }) {
       {importing && (
         <div className="mt-2 flex items-center gap-2">
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="paste preset code…"
-            className="flex-1 rounded bg-neutral-800 px-2 py-1 font-mono text-xs text-neutral-100 outline-none focus:ring-1 focus:ring-accent" />
+            className="flex-1 rounded bg-neutral-800 px-2 py-1 font-mono text-xs text-neutral-100 outline-none" />
           <button onClick={() => run(async () => {
             await importPreset(game.id, code.trim(), undefined, game);
             setCode(''); setImporting(false);

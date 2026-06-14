@@ -34,6 +34,20 @@ body {
   background: rgb(var(--border-strong));
 }
 
+/* Form controls: a visible resting border so fields read as editable, and a
+ * neutral focus — never the browser's default outline or an accent-yellow ring. */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  border: 1px solid rgb(64 64 64);
+}
+input:not([type='checkbox']):not([type='radio']):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgb(120 120 120);
+}
+
 /* ------------------------------------------------------------------ *
  * Animations. Everything visual is gated behind prefers-reduced-motion
  * so users who ask for less motion get an instant, static UI.
