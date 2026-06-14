@@ -5,6 +5,7 @@ const modManager = require('./modManager');
 const { encodeInvite, decodeInvite } = require('./inviteCode');
 const { diffMods } = require('./modSync');
 const { parseStatus } = require('./connectorStatus');
+const presetStore = require('./presetStore');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -69,8 +70,9 @@ function parseInvite(code) {
   return decodeInvite(code);
 }
 
-// Adopt a friend's invite: validate same game, set AppId + room descriptor,
-// return the mod diff to drive review-then-sync. Does NOT install mods.
+// Adopt a friend's invite: validate same game, set AppId + room descriptor, and
+// stage a fresh preset (active) for the invite's mod set. Returns the mod diff to
+// drive the renderer's review-then-sync (it installs into the new active preset).
 function applyInvite(gameId, code) {
   const game = findGame(gameId);
   const d = decodeInvite(code);
@@ -87,8 +89,12 @@ function applyInvite(gameId, code) {
       version: d.version,
     },
   });
+  // The invite's mod set becomes a new preset we switch to; the renderer's Sync
+  // installs the diff into it.
+  const presetId = presetStore.create(gameId, `${d.name || 'Friend'} ${d.room}`, false);
+  presetStore.setActive(gameId, presetId);
   const diff = diffMods(modManager.getInstalledMods(gameId), d.mods);
-  return { descriptor: d, diff, hostVersion: d.version, localVersion: String(game.version || '') };
+  return { descriptor: d, diff, hostVersion: d.version, localVersion: String(game.version || ''), presetId };
 }
 
 // Read the connector's status file (written in-game) for the player/edition list.
