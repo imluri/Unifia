@@ -10,6 +10,7 @@ const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolv
 const { aggregateMods } = require('./modHubs/aggregate');
 const { getProviders } = require('./modHubs');
 const { filterDiscover } = require('./modHubs/discover');
+const presetStore = require('./presetStore');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -22,15 +23,17 @@ function communityFor(game) {
   return profile.thunderstoreCommunity || null;
 }
 
+// Active-preset staging folder for a game.
+function presetDir(gameId) {
+  return modsDir(gameId, presetStore.getActiveId(gameId));
+}
+
 function modsState(gameId) {
-  const all = store.get('gameMods') || {};
-  return all[gameId] || {};
+  return presetStore.activeMods(gameId);
 }
 
 function saveModsState(gameId, state) {
-  const all = store.get('gameMods') || {};
-  all[gameId] = state;
-  store.set('gameMods', all);
+  presetStore.setActiveMods(gameId, state);
 }
 
 // Does this game have an enabled BepInExPack staged? (i.e. the Thunderstore mod
@@ -83,7 +86,7 @@ async function fetchModListForCommunity(community, opts) {
 
 // Download one version zip to a temp file, extract into its staging folder.
 async function stageVersion(gameId, fullName, versionData, onProgress) {
-  const target = path.join(modsDir(gameId), fullName);
+  const target = path.join(presetDir(gameId), fullName);
   fs.rmSync(target, { recursive: true, force: true });
   ensureDir(target);
 
@@ -152,7 +155,7 @@ async function installMod(gameId, fullName, version, onProgress) {
 function uninstallMod(gameId, fullName) {
   const state = { ...modsState(gameId) };
   if (!state[fullName]) return { gameId, fullName, removed: false };
-  fs.rmSync(path.join(modsDir(gameId), fullName), { recursive: true, force: true });
+  fs.rmSync(path.join(presetDir(gameId), fullName), { recursive: true, force: true });
   delete state[fullName];
   saveModsState(gameId, state);
   return { gameId, fullName, removed: true };
@@ -214,7 +217,7 @@ function deployMods(gameId, installPath) {
 
     if (!m.enabled) { changed = true; continue; }
 
-    const staging = path.join(modsDir(gameId), fullName);
+    const staging = path.join(presetDir(gameId), fullName);
     if (!fs.existsSync(staging)) { changed = true; continue; }
 
     const recordRel = [];
