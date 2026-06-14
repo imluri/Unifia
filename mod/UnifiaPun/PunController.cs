@@ -170,6 +170,9 @@ namespace Unifia.Pun
                 if (overrideAppId) app.AppIdRealtime = _net.AppId;
             }
 
+            // Some games also use Photon Voice (a second AppId), e.g. REPO.
+            if (!string.IsNullOrEmpty(_net.VoiceAppId)) app.AppIdVoice = _net.VoiceAppId;
+
             if (!string.IsNullOrEmpty(_net.Username)) PhotonNetwork.NickName = _net.Username;
             // Force a shared game version so Photon doesn't segregate by AppVersion.
             if (!string.IsNullOrEmpty(_net.Version)) PhotonNetwork.GameVersion = _net.Version;

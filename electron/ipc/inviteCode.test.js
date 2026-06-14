@@ -5,7 +5,9 @@ const { encodeInvite, decodeInvite } = require('./inviteCode');
 const sample = {
   community: 'repo',
   name: 'REPO',
+  presetName: 'My Preset',
   appId: 'abc-123',
+  voiceAppId: 'voice-456',
   room: 'unifia_7F3K',
   version: '0.4.4',
   mods: [{ fullName: 'Zehs-REPOLib', version: '4.2.0' }],

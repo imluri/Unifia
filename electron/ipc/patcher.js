@@ -26,6 +26,7 @@ function buildNetConfig(d = {}) {
     `ServerIP = ${d.serverIP || ''}`,
     `Port = ${d.port || 5055}`,
     `AppId = ${d.appId || ''}`,
+    `VoiceAppId = ${d.voiceAppId || ''}`,
     `RoomCode = ${d.roomCode || ''}`,
     `Username = ${d.username || ''}`,
     `Version = ${d.version || ''}`,

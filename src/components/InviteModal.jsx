@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -12,9 +12,16 @@ export default function InviteModal({ game, open, onClose }) {
   const applyInvite = useAppStore((s) => s.applyInvite);
   const installMod = useAppStore((s) => s.installMod);
   const loadMods = useAppStore((s) => s.loadMods);
+  const loadPresets = useAppStore((s) => s.loadPresets);
+  const presetData = useAppStore((s) => s.presets[game.id]);
+
+  const activePresetName =
+    presetData?.presets.find((p) => p.id === presetData.activeId)?.name || '';
 
   // Migration: fall back to the old global Settings AppId if this game has none yet.
   const [appId, setAppId] = useState(profile.photonAppId || settings?.photonAppId || '');
+  const [voiceAppId, setVoiceAppId] = useState(profile.photonVoiceAppId || settings?.photonVoiceAppId || '');
+  const [presetName, setPresetName] = useState('');
   const [room, setRoom] = useState('');
   const [code, setCode] = useState('');
   const [copied, setCopied] = useState(false);
@@ -24,19 +31,40 @@ export default function InviteModal({ game, open, onClose }) {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
 
+  // Load presets so we can prefill the preset-name field, and default the name
+  // to the active preset once it's known.
+  useEffect(() => {
+    if (open && !presetData) loadPresets(game.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  useEffect(() => {
+    if (open && activePresetName && !presetName) setPresetName(activePresetName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, activePresetName]);
+
   if (!open) return null;
 
-  async function saveAppId() {
-    await saveGameProfile(game.id, { photonAppId: appId.trim() });
+  async function saveIds() {
+    await saveGameProfile(game.id, { photonAppId: appId.trim(), photonVoiceAppId: voiceAppId.trim() });
   }
 
   async function onGenerate() {
     setError(null);
+    if (!presetName.trim()) {
+      setError('Name your preset before sharing the code.');
+      return;
+    }
     try {
-      await saveAppId();
-      const res = await buildInvite(game.id, { appId: appId.trim(), room: room.trim() });
+      await saveIds();
+      const res = await buildInvite(game.id, {
+        appId: appId.trim(),
+        voiceAppId: voiceAppId.trim(),
+        room: room.trim(),
+        presetName: presetName.trim(),
+      });
       setCode(res.code);
       setRoom(res.room);
+      await loadPresets(game.id); // reflect the preset rename
     } catch (err) {
       setError(err.message);
     }
@@ -61,6 +89,9 @@ export default function InviteModal({ game, open, onClose }) {
       setDiff(res.diff);
       setImportInfo(res);
       setAppId(res.descriptor.appId);
+      setVoiceAppId(res.descriptor.voiceAppId || '');
+      if (res.descriptor.presetName) setPresetName(res.descriptor.presetName);
+      await loadPresets(game.id); // surface the imported preset
     } catch (err) {
       setError(err.message);
     }
@@ -108,14 +139,24 @@ export default function InviteModal({ game, open, onClose }) {
         </div>
 
         <div className="space-y-4 overflow-y-auto px-5 py-4">
-          {/* Photon AppId */}
+          {/* Photon AppIds — some games (e.g. REPO) need Realtime + Voice. */}
           <label className="block text-xs text-neutral-400">
-            Photon AppId (the Photon app everyone shares)
+            Photon AppId — Realtime (the app everyone shares)
             <input
               value={appId}
               onChange={(e) => setAppId(e.target.value)}
-              onBlur={saveAppId}
+              onBlur={saveIds}
               placeholder="xxxxxxxx-xxxx-…"
+              className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
+            />
+          </label>
+          <label className="block text-xs text-neutral-400">
+            Photon AppId — Voice (optional; required by some games like REPO)
+            <input
+              value={voiceAppId}
+              onChange={(e) => setVoiceAppId(e.target.value)}
+              onBlur={saveIds}
+              placeholder="leave blank if the game has no voice chat"
               className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
             />
           </label>
@@ -123,6 +164,15 @@ export default function InviteModal({ game, open, onClose }) {
           {/* Your invite */}
           <section className="rounded border border-border-subtle bg-neutral-900/40 p-3">
             <h4 className="mb-2 text-sm font-semibold text-neutral-200">Your invite</h4>
+            <label className="mb-2 block text-xs text-neutral-400">
+              Preset name (required — shared with your friends)
+              <input
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="e.g. Vanilla+ or Chaos Night"
+                className="mt-1 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm text-neutral-100 outline-none"
+              />
+            </label>
             <div className="flex items-center gap-2">
               <input
                 value={room}
@@ -132,7 +182,9 @@ export default function InviteModal({ game, open, onClose }) {
               />
               <button
                 onClick={onGenerate}
-                className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
+                disabled={!presetName.trim()}
+                title={!presetName.trim() ? 'Name your preset first' : undefined}
+                className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
               >
                 Generate
               </button>

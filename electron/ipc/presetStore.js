@@ -97,8 +97,12 @@ function presetMods(gameId, id) {
   const p = getEntry(gameId).presets.find((x) => x.id === id);
   return p ? p.mods || {} : {};
 }
+function activeName(gameId) {
+  const p = L.activePreset(getEntry(gameId));
+  return p ? p.name : '';
+}
 
 module.exports = {
   genId, getEntry, getActiveId, activeMods, setActiveMods,
-  list, create, rename, remove, setActive, updateFromActive, presetMods,
+  list, create, rename, remove, setActive, updateFromActive, presetMods, activeName,
 };

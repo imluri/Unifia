@@ -38,16 +38,26 @@ function enabledMods(gameId) {
 
 // Build a shareable invite for this game. Persists the host's own room descriptor
 // (netConfig) + AppId so they're ready to launch, and returns the encoded string.
-function buildInvite(gameId, { appId, room } = {}) {
+function buildInvite(gameId, { appId, voiceAppId, room, presetName } = {}) {
   const game = findGame(gameId);
   const community = modManager.communityFor(game);
   const realAppId = (appId || getProfile(gameId).photonAppId || '').trim();
   if (!realAppId) throw new Error('Enter this game’s Photon AppId first.');
+  const voice = (voiceAppId !== undefined ? voiceAppId : getProfile(gameId).photonVoiceAppId || '').trim();
   const roomCode = (room || '').trim() || makeRoomCode();
+
+  // The preset must be named before sharing — rename the active preset to the
+  // supplied name, else carry its current name.
+  let pName = (presetName || '').trim();
+  if (pName) presetStore.rename(gameId, presetStore.getActiveId(gameId), pName);
+  else pName = presetStore.activeName(gameId);
+
   const descriptor = {
     community: community || '',
     name: game.name,
+    presetName: pName,
     appId: realAppId,
+    voiceAppId: voice,
     room: roomCode,
     version: String(game.version || ''),
     mods: enabledMods(gameId),
@@ -55,9 +65,11 @@ function buildInvite(gameId, { appId, room } = {}) {
   // Persist so the host launches into the same room (cloud-region mode).
   saveProfile(gameId, {
     photonAppId: realAppId,
+    photonVoiceAppId: voice,
     netConfig: {
       connectionMode: 'cloud-region',
       appId: realAppId,
+      voiceAppId: voice,
       roomCode,
       version: descriptor.version,
     },
@@ -82,16 +94,18 @@ function applyInvite(gameId, code) {
   }
   saveProfile(gameId, {
     photonAppId: d.appId,
+    photonVoiceAppId: d.voiceAppId || '',
     netConfig: {
       connectionMode: 'cloud-region',
       appId: d.appId,
+      voiceAppId: d.voiceAppId || '',
       roomCode: d.room,
       version: d.version,
     },
   });
   // The invite's mod set becomes a new preset we switch to; the renderer's Sync
-  // installs the diff into it.
-  const presetId = presetStore.create(gameId, `${d.name || 'Friend'} ${d.room}`, false);
+  // installs the diff into it. Name it from the code (falls back to room).
+  const presetId = presetStore.create(gameId, d.presetName || `${d.name || 'Friend'} ${d.room}`, false);
   presetStore.setActive(gameId, presetId);
   const diff = diffMods(modManager.getInstalledMods(gameId), d.mods);
   return { descriptor: d, diff, hostVersion: d.version, localVersion: String(game.version || ''), presetId };

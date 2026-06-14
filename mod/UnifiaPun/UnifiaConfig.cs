@@ -12,6 +12,7 @@ namespace Unifia.Pun
         public string ServerIP;
         public int Port = 5055;
         public string AppId;
+        public string VoiceAppId; // some games (e.g. REPO) also use Photon Voice
         public string RoomCode;
         public string Username;
         public string Version;
@@ -70,6 +71,7 @@ namespace Unifia.Pun
                     case "ServerIP": net.ServerIP = val; break;
                     case "Port": int.TryParse(val, out net.Port); break;
                     case "AppId": net.AppId = val; break;
+                    case "VoiceAppId": net.VoiceAppId = val; break;
                     case "RoomCode": net.RoomCode = val; break;
                     case "Username": net.Username = val; break;
                     case "Version": net.Version = val; break;
