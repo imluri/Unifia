@@ -11,8 +11,7 @@ const artManager = require('./ipc/artManager');
 const profiles = require('./ipc/profiles');
 const modManager = require('./ipc/modManager');
 const pluginManager = require('./ipc/pluginManager');
-const upnp = require('./ipc/upnp');
-const { createNetwork } = require('./ipc/network');
+const multiplayer = require('./ipc/multiplayer');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -25,7 +24,6 @@ function emit(name, payload) {
   }
 }
 
-const network = createNetwork(emit);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -185,12 +183,12 @@ function registerIpc() {
   handle('unifia:clearArtCache', (gameId) => artManager.clearArtCache(gameId));
   handle('unifia:testSteamGridKey', (key) => artManager.testKey(key));
 
-  // --- Network / lobby ---
-  handle('unifia:getLocalIP', () => network.getLocalIP());
-  handle('unifia:hostSession', (gameId, port) => network.hostSession(gameId, port));
-  handle('unifia:joinSession', (gameId, ip, port) => network.joinSession(gameId, ip, port));
-  handle('unifia:stopSession', () => network.stopSession());
-  handle('unifia:getPlayers', () => network.getPlayers());
+  // --- Multiplayer (share-code) ---
+  handle('unifia:buildInvite', (gameId, opts) => multiplayer.buildInvite(gameId, opts || {}));
+  handle('unifia:parseInvite', (code) => multiplayer.parseInvite(code));
+  handle('unifia:applyInvite', (gameId, code) => multiplayer.applyInvite(gameId, code));
+  handle('unifia:getConnectorPlayers', (gameId) => multiplayer.getConnectorPlayers(gameId));
+  handle('unifia:saveGameProfile', (gameId, patch) => multiplayer.saveProfile(gameId, patch || {}));
 
   // --- Window controls (custom frameless title bar) ---
   handle('unifia:windowMinimize', () => {
@@ -230,11 +228,5 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  network.stopSession();
   if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('before-quit', () => {
-  network.stopSession();
-  upnp.shutdown();
 });
