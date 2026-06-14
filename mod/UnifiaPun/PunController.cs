@@ -20,10 +20,20 @@ namespace Unifia.Pun
     {
         private const KeyCode Hotkey = KeyCode.F9;
 
+        private const float ReconnectBackoff = 2f;
+        private const int MaxReconnects = 5;
+
         private NetConfig _net;
         private UnifiaProfile _profile;
         private bool _activating;
         private float _autoTimer = -1f;
+
+        // Once activated we stay "engaged" for the session and re-assert our
+        // settings if anything knocks us off, so the host's AppId/room win.
+        private bool _engaged;
+        private bool _selfDisconnect; // guards the pre-connect Disconnect() below
+        private float _reconnectTimer = -1f;
+        private int _reconnects;
 
         public void Init(NetConfig net, UnifiaProfile profile)
         {
@@ -53,6 +63,15 @@ namespace Unifia.Pun
                 _autoTimer -= Time.deltaTime;
                 if (_autoTimer <= 0f) Activate();
             }
+            if (_reconnectTimer > 0f)
+            {
+                _reconnectTimer -= Time.deltaTime;
+                if (_reconnectTimer <= 0f)
+                {
+                    _reconnectTimer = -1f;
+                    Activate(); // re-asserts AppId + room and reconnects
+                }
+            }
             if (Input.GetKeyDown(Hotkey)) Activate();
         }
 
@@ -67,11 +86,15 @@ namespace Unifia.Pun
             }
 
             _activating = true;
+            _engaged = true;
             var mode = string.IsNullOrEmpty(_net.ConnectionMode) ? "cloud-region" : _net.ConnectionMode;
             UnifiaPlugin.Log.LogInfo($"Activating Unifia ({mode}) → room '{_net.RoomCode}'…");
 
             if (PhotonNetwork.IsConnected)
+            {
+                _selfDisconnect = true; // our own teardown — don't treat as a knock-off
                 PhotonNetwork.Disconnect();
+            }
 
             var app = PhotonNetwork.PhotonServerSettings.AppSettings;
             // Only swap the AppId for a real one — never clobber the game's own
@@ -89,11 +112,11 @@ namespace Unifia.Pun
             }
             else
             {
-                // Stay on Photon Cloud but pin everyone to one region + room so
-                // cross-store players converge. Keep the game's own AppId.
+                // Stay on Photon Cloud. Match only the AppId (the "key") — the game
+                // exposes its own Photon region selector, so leave FixedRegion as the
+                // player set it and never pin a region from Unifia.
                 app.UseNameServer = true;
                 app.Server = "";
-                app.FixedRegion = string.IsNullOrEmpty(_net.Region) ? "" : _net.Region;
                 if (overrideAppId) app.AppIdRealtime = _net.AppId;
             }
 
@@ -115,6 +138,7 @@ namespace Unifia.Pun
         public override void OnJoinedRoom()
         {
             _activating = false;
+            _reconnects = 0; // back in the room — reset the re-assert budget
             int count = PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.PlayerCount : 0;
             UnifiaPlugin.Log.LogInfo($"Joined Unifia room '{_net.RoomCode}' ({count} players).");
         }
@@ -128,7 +152,27 @@ namespace Unifia.Pun
         public override void OnDisconnected(DisconnectCause cause)
         {
             _activating = false;
+
+            // Our own pre-connect teardown — expected, don't fight it.
+            if (_selfDisconnect)
+            {
+                _selfDisconnect = false;
+                UnifiaPlugin.Log.LogInfo($"Disconnected (self): {cause}");
+                return;
+            }
+
             UnifiaPlugin.Log.LogInfo($"Disconnected: {cause}");
+
+            // Something knocked us off (the game's own connect flow, another mod,
+            // a transient drop). Re-assert our AppId + room and rejoin so the
+            // host's settings win — capped so we never loop forever.
+            if (_engaged && _reconnects < MaxReconnects)
+            {
+                _reconnects++;
+                _reconnectTimer = ReconnectBackoff;
+                UnifiaPlugin.Log.LogInfo(
+                    $"Re-asserting Unifia (attempt {_reconnects}/{MaxReconnects}) in {ReconnectBackoff}s…");
+            }
         }
     }
 }
