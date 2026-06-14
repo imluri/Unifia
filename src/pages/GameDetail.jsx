@@ -16,7 +16,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const launchGame = useAppStore((s) => s.launchGame);
   const removeGame = useAppStore((s) => s.removeGame);
 
-  const [tab, setTab] = useState('installed');
+  const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
   const [bepBusy, setBepBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('downloads');
@@ -26,11 +26,13 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [notice, setNotice] = useState(null);
 
   useEffect(() => {
-    if (game) loadMods(game.id);
+    if (game) loadMods(game);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.id]);
 
   if (!game) return null;
+
+  const notInstalled = game.installed === false;
 
   const categories = Array.from(new Set(modList.flatMap((m) => m.categories))).sort();
   const browse = modList
@@ -89,29 +91,44 @@ export default function GameDetail({ game, onBack, goToModules }) {
         </p>
       </div>
 
-      <div className="mb-5 flex items-center gap-2">
-        <button
-          onClick={handleLaunch}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
-        >
-          Launch
-        </button>
-        <button
-          onClick={() => setModuleOpen(true)}
-          className="rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
-        >
-          Module
-        </button>
-        <button
-          onClick={handleRemove}
-          title="Remove from library"
-          className="ml-auto flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
-        >
-          <Icon name="x" size={15} /> Remove
-        </button>
-      </div>
-      {notice && (
-        <div className="mb-4 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-200">{notice}</div>
+      {!notInstalled && (
+        <>
+          <div className="mb-5 flex items-center gap-2">
+            <button
+              onClick={handleLaunch}
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
+            >
+              Launch
+            </button>
+            <button
+              onClick={() => setModuleOpen(true)}
+              className="rounded bg-neutral-700 px-4 py-2 text-sm text-neutral-100 transition hover:bg-surface-hover"
+            >
+              Module
+            </button>
+            <button
+              onClick={handleRemove}
+              title="Remove from library"
+              className="ml-auto flex items-center gap-1.5 rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-400 transition hover:bg-red-900/60 hover:text-red-300"
+            >
+              <Icon name="x" size={15} /> Remove
+            </button>
+          </div>
+          {notice && (
+            <div className="mb-4 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-200">{notice}</div>
+          )}
+        </>
+      )}
+      {notInstalled && (
+        <div className="mb-5 flex items-center gap-2 rounded border border-yellow-900/40 bg-yellow-900/15 px-4 py-3 text-sm text-yellow-300">
+          Not installed — browsing mods only.
+          <button
+            onClick={() => window.unifia.openExternal(`https://thunderstore.io/c/${game.community}/`)}
+            className="ml-auto rounded bg-neutral-700 px-3 py-1.5 text-xs text-neutral-100 hover:bg-surface-hover"
+          >
+            View on Thunderstore
+          </button>
+        </div>
       )}
 
       {modError ? (
@@ -119,7 +136,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
           Couldn&apos;t load mods: {modError}
           <div className="mt-3">
             <button
-              onClick={() => loadMods(game.id, { refresh: true })}
+              onClick={() => loadMods(game, { refresh: true })}
               className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover"
             >
               Retry
@@ -132,7 +149,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
         </div>
       ) : (
         <>
-          {!modsLoading && !hasBepInEx && (
+          {!modsLoading && !notInstalled && !hasBepInEx && (
             <div className="mb-4 rounded border border-yellow-900/40 bg-yellow-900/15 px-4 py-3 text-sm">
               {bepPkg ? (
                 <div className="flex items-center justify-between gap-3">
@@ -208,7 +225,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {browse.map((m) => (
-                  <ModBrowseCard key={m.id} game={game} mod={m} />
+                  <ModBrowseCard key={m.id} game={game} mod={m} readOnly={notInstalled} />
                 ))}
               </div>
             </div>
