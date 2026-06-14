@@ -5,6 +5,10 @@ import InstalledModRow from '../components/InstalledModRow.jsx';
 import GameModuleModal from '../components/GameModuleModal.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
+// Big communities return thousands of mods; rendering them all at once janks the
+// page, so the Browse grid is paged.
+const BROWSE_PAGE_SIZE = 12;
+
 export default function GameDetail({ game, onBack, goToModules }) {
   const loadMods = useAppStore((s) => s.loadMods);
   const modsLoading = useAppStore((s) => s.modsLoading);
@@ -12,6 +16,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const modHubs = useAppStore((s) => s.modHubs);
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
+  const bepInExOnDisk = useAppStore((s) => s.bepInExOnDisk);
   const installMod = useAppStore((s) => s.installMod);
   const launchGame = useAppStore((s) => s.launchGame);
   const removeGame = useAppStore((s) => s.removeGame);
@@ -22,6 +27,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [sort, setSort] = useState('downloads');
   const [category, setCategory] = useState('');
   const [hub, setHub] = useState('');
+  const [page, setPage] = useState(1);
   const [moduleOpen, setModuleOpen] = useState(false);
   const [notice, setNotice] = useState(null);
 
@@ -29,6 +35,11 @@ export default function GameDetail({ game, onBack, goToModules }) {
     if (game) loadMods(game);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.id]);
+
+  // Any change to the search/filter/sort/tab resets Browse back to the first page.
+  useEffect(() => {
+    setPage(1);
+  }, [query, sort, category, hub, tab]);
 
   if (!game) return null;
 
@@ -46,7 +57,13 @@ export default function GameDetail({ game, onBack, goToModules }) {
       : b.totalDownloads - a.totalDownloads
     );
 
-  const hasBepInEx = installedMods.some((m) => /bepinexpack/i.test(m.fullName));
+  const totalPages = Math.max(1, Math.ceil(browse.length / BROWSE_PAGE_SIZE));
+  const pageClamped = Math.min(page, totalPages);
+  const pageItems = browse.slice((pageClamped - 1) * BROWSE_PAGE_SIZE, pageClamped * BROWSE_PAGE_SIZE);
+
+  // The loader can come from a Unifia-installed BepInExPack OR already exist in
+  // the game folder (repacks/cracked builds often bundle it) — either satisfies it.
+  const hasBepInEx = bepInExOnDisk || installedMods.some((m) => /bepinexpack/i.test(m.fullName));
   const bepPkg = modList.find((m) => /bepinexpack/i.test(m.fullName));
   async function installBepInEx() {
     if (!bepPkg) return;
@@ -224,10 +241,33 @@ export default function GameDetail({ game, onBack, goToModules }) {
                 </select>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {browse.map((m) => (
+                {pageItems.map((m) => (
                   <ModBrowseCard key={m.id} game={game} mod={m} readOnly={notInstalled} />
                 ))}
               </div>
+              {browse.length === 0 ? (
+                <p className="mt-2 text-sm text-neutral-500">No mods match your search or filters.</p>
+              ) : browse.length > BROWSE_PAGE_SIZE ? (
+                <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={pageClamped <= 1}
+                    className="rounded bg-neutral-800 px-3 py-1.5 text-neutral-200 transition hover:bg-surface-hover disabled:opacity-40"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-neutral-500">
+                    Page {pageClamped} of {totalPages} · {browse.length} mods
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={pageClamped >= totalPages}
+                    className="rounded bg-neutral-800 px-3 py-1.5 text-neutral-200 transition hover:bg-surface-hover disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
         </>

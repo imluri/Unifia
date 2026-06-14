@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('unifia', {
   // Thunderstore mods
   fetchModList: (gameId, opts) => invoke('unifia:fetchModList', gameId, opts),
   getInstalledMods: (gameId) => invoke('unifia:getInstalledMods', gameId),
+  gameHasBepInEx: (gameId) => invoke('unifia:gameHasBepInEx', gameId),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),

@@ -37,6 +37,7 @@ export const useAppStore = create((set, get) => ({
   modsLoading: false,
   modError: null, // surfaced when the Thunderstore list fails to load
   modProgress: {}, // fullName -> { percent }
+  bepInExOnDisk: false, // a BepInEx loader is already present in the game folder
 
   // Discover (not-installed Thunderstore catalog games, for Home > Discover)
   discoverGames: [], // [{ id, name, community, installed:false }]
@@ -191,11 +192,13 @@ export const useAppStore = create((set, get) => ({
       const listPromise = notInstalled
         ? api.fetchModListForCommunity(game.community, { refresh })
         : api.fetchModList(game.id, { refresh });
-      const [{ hubs, packages }, installed] = await Promise.all([
+      const [{ hubs, packages }, installed, bepInExOnDisk] = await Promise.all([
         listPromise,
         api.getInstalledMods(game.id),
+        // Not-installed Discover games have no install folder to inspect.
+        notInstalled ? Promise.resolve(false) : api.gameHasBepInEx(game.id),
       ]);
-      set({ modList: packages, modHubs: hubs, installedMods: installed });
+      set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk });
       if (notInstalled) {
         // checkModUpdates calls findGame in main and would throw for a game the
         // store doesn't know about; there's nothing installed to update anyway.

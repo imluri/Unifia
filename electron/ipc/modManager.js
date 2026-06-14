@@ -45,6 +45,18 @@ function getInstalledMods(gameId) {
   return Object.entries(state).map(([fullName, m]) => ({ fullName, ...m }));
 }
 
+// Detect a BepInEx loader already present in the game folder on disk — e.g. a
+// repack/cracked build that ships it, or a manual install Unifia didn't perform.
+// Mods only need the loader to exist; it doesn't matter who put it there, so we
+// shouldn't nag to install BepInEx when these markers are present.
+const BEPINEX_DISK_MARKERS = ['BepInEx', 'winhttp.dll', 'doorstop_config.ini', 'doorstop_libs', '.doorstop_version'];
+function gameHasBepInEx(gameId) {
+  const game = findGame(gameId);
+  const root = game.installPath;
+  if (!root) return false;
+  return BEPINEX_DISK_MARKERS.some((m) => fs.existsSync(path.join(root, m)));
+}
+
 // Aggregate this game's mods across all registered hub providers. Returns
 // { packages, hubs } — each mod carries its hub tag.
 async function fetchModList(gameId, opts) {
@@ -230,6 +242,7 @@ module.exports = {
   getDiscoverGames,
   fetchModListForCommunity,
   getInstalledMods,
+  gameHasBepInEx,
   installMod,
   uninstallMod,
   setModEnabled,

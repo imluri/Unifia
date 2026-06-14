@@ -127,6 +127,7 @@ function registerIpc() {
   // --- Thunderstore mods ---
   handle('unifia:fetchModList', (gameId, opts) => modManager.fetchModList(gameId, opts || {}));
   handle('unifia:getInstalledMods', (gameId) => modManager.getInstalledMods(gameId));
+  handle('unifia:gameHasBepInEx', (gameId) => modManager.gameHasBepInEx(gameId));
   handle('unifia:installMod', (gameId, fullName, version) =>
     modManager.installMod(gameId, fullName, version, (p) => emit('download-progress', { mod: true, ...p }))
   );
