@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Icon from './Icon.jsx';
 import DownloadProgress from './DownloadProgress.jsx';
 import { useAppStore } from '../store/useAppStore.js';
@@ -37,38 +37,6 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
   const [fetching, setFetching] = useState(false);
   const [installing, setInstalling] = useState(null);
   const [error, setError] = useState(null);
-
-  // Unifia connector plugin (Unifia.Pun.dll) status for this game.
-  const [pluginStatus, setPluginStatus] = useState(null);
-  const [pluginBusy, setPluginBusy] = useState(false);
-
-  async function refreshPluginStatus(id) {
-    try {
-      setPluginStatus(await window.unifia.getPluginStatus(id));
-    } catch {
-      setPluginStatus(null);
-    }
-  }
-
-  useEffect(() => {
-    if (game) refreshPluginStatus(game.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.id]);
-
-  async function togglePlugin(install) {
-    setPluginBusy(true);
-    setError(null);
-    try {
-      const next = install
-        ? await window.unifia.installPlugin(game.id)
-        : await window.unifia.uninstallPlugin(game.id);
-      setPluginStatus(next);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setPluginBusy(false);
-    }
-  }
 
   if (!game) return null;
 
@@ -166,67 +134,6 @@ export default function GameModuleModal({ game, onClose, onManageAll }) {
               </span>
             ) : (
               <span className="text-neutral-500">None</span>
-            )}
-          </div>
-
-          {/* Unifia connector plugin */}
-          <div className="rounded border border-border-default bg-neutral-900/40 px-3 py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm font-medium text-neutral-100">
-                  Unifia connector plugin
-                  {pluginStatus?.pluginInstalled && (
-                    <span className="rounded bg-green-900/60 px-2 py-0.5 text-xs text-green-300">
-                      Installed ✓
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-neutral-500">
-                  {!pluginStatus
-                    ? 'Checking…'
-                    : !pluginStatus.available
-                      ? 'Plugin not built — run dotnet build in mod/UnifiaPun.'
-                      : pluginStatus.pluginInstalled
-                        ? 'Installed in BepInEx/plugins.'
-                        : 'Not installed in this game.'}
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {pluginStatus?.available && !pluginStatus.pluginInstalled && (
-                  <button
-                    onClick={() => togglePlugin(true)}
-                    disabled={pluginBusy}
-                    className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95 disabled:opacity-50"
-                  >
-                    {pluginBusy ? 'Installing…' : 'Install'}
-                  </button>
-                )}
-                {pluginStatus?.available && pluginStatus.pluginInstalled && (
-                  <>
-                    <button
-                      onClick={() => togglePlugin(true)}
-                      disabled={pluginBusy}
-                      title="Copy the latest built DLL over the installed one"
-                      className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover disabled:opacity-50"
-                    >
-                      Reinstall
-                    </button>
-                    <button
-                      onClick={() => togglePlugin(false)}
-                      disabled={pluginBusy}
-                      className="rounded bg-neutral-800 px-3 py-1.5 text-sm text-red-300 hover:bg-red-900/60 disabled:opacity-50"
-                    >
-                      Uninstall
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            {pluginStatus && pluginStatus.pluginInstalled && !pluginStatus.bepinexInstalled && (
-              <p className="mt-1.5 text-[11px] text-yellow-500/80">
-                BepInEx isn&apos;t in the game folder yet — set an active version below; it deploys
-                on launch and the plugin loads then.
-              </p>
             )}
           </div>
 

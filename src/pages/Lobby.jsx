@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PlayerList from '../components/PlayerList.jsx';
 import VersionBadge from '../components/VersionBadge.jsx';
 import Icon from '../components/Icon.jsx';
+import ConnectorStatus from '../components/ConnectorStatus.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 function GamePicker({ games, value, onChange }) {
@@ -81,6 +82,8 @@ function HostTab() {
           />
         </label>
       </div>
+
+      {gameId && <ConnectorStatus gameId={gameId} />}
 
       <div className="rounded bg-neutral-900/40 px-4 py-3 text-sm">
         <div className="flex items-center gap-2">
@@ -249,6 +252,8 @@ function JoinTab() {
           />
         </label>
       </div>
+
+      {gameId && <ConnectorStatus gameId={gameId} />}
 
       <div className="flex items-center gap-3">
         {!connected ? (
