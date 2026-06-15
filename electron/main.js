@@ -13,6 +13,7 @@ const modManager = require('./ipc/modManager');
 const pluginManager = require('./ipc/pluginManager');
 const multiplayer = require('./ipc/multiplayer');
 const presets = require('./ipc/presets');
+const analyzer = require('./ipc/analyzer');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -204,6 +205,9 @@ function registerIpc() {
   handle('unifia:importPreset', (gameId, code, name) =>
     presets.importPreset(gameId, code, name, (p) => emit('download-progress', { mod: true, ...p }))
   );
+
+  // --- Netcode analyzer ---
+  handle('unifia:analyzeGame', (gameId) => analyzer.analyzeGame(gameId));
 
   // --- Window controls (custom frameless title bar) ---
   handle('unifia:windowMinimize', () => {
