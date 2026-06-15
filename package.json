@@ -73,7 +73,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "artifactName": "Unifia-Setup-${version}.${ext}"
     },
     "linux": {
       "target": "AppImage",
