@@ -14,6 +14,8 @@ async function invoke(channel, ...args) {
 const listeners = {
   'download-progress': new Set(),
   'window-maximized': new Set(),
+  'update-available': new Set(),
+  'update-downloaded': new Set(),
 };
 
 ipcRenderer.on('unifia:event', (_e, { name, payload }) => {
@@ -71,6 +73,11 @@ contextBridge.exposeInMainWorld('unifia', {
 
   // Netcode analyzer
   analyzeGame: (gameId) => invoke('unifia:analyzeGame', gameId),
+
+  // Auto-update
+  installUpdate: () => invoke('unifia:installUpdate'),
+  onUpdateAvailable: (cb) => subscribe('update-available', cb),
+  onUpdateDownloaded: (cb) => subscribe('update-downloaded', cb),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),

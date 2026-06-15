@@ -14,6 +14,7 @@ const pluginManager = require('./ipc/pluginManager');
 const multiplayer = require('./ipc/multiplayer');
 const presets = require('./ipc/presets');
 const analyzer = require('./ipc/analyzer');
+const updater = require('./ipc/updater');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -209,6 +210,9 @@ function registerIpc() {
   // --- Netcode analyzer ---
   handle('unifia:analyzeGame', (gameId) => analyzer.analyzeGame(gameId));
 
+  // --- Auto-update ---
+  handle('unifia:installUpdate', () => updater.installUpdate());
+
   // --- Window controls (custom frameless title bar) ---
   handle('unifia:windowMinimize', () => {
     mainWindow?.minimize();
@@ -240,6 +244,7 @@ app.whenReady().then(() => {
   ensureLayout();
   registerIpc();
   createWindow();
+  updater.initUpdater(emit);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

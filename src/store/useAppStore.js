@@ -44,6 +44,12 @@ export const useAppStore = create((set, get) => ({
   discoverLoading: false,
   discoverError: null,
 
+  // Auto-update: status idle | downloading | ready
+  update: { status: 'idle', version: null },
+  async installUpdate() {
+    return api.installUpdate();
+  },
+
   // Toast notifications: [{ id, type, message }]
   toasts: [],
   _toastSeq: 0,
@@ -103,6 +109,11 @@ export const useAppStore = create((set, get) => ({
         set((s) => ({ downloads: { ...s.downloads, [key]: p } }));
       }
     });
+    api.onUpdateAvailable((p) => {
+      set({ update: { status: 'downloading', version: p.version } });
+      get().pushToast({ type: 'info', message: `Downloading update v${p.version}…` });
+    });
+    api.onUpdateDownloaded((p) => set({ update: { status: 'ready', version: p.version } }));
   },
 
   // --- Games ---
