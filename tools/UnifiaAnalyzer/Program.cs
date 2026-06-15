@@ -1,9 +1,12 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
 // UnifiaAnalyzer <path-to-Assembly-CSharp.dll>
 // Scans IL for known Photon/Steamworks call sites and prints a JSON report.
+// JSON uses source generation (ReportContext) so the tool can be published
+// trimmed/self-contained (~13 MB) without breaking serialization.
 
 static class Catalog
 {
@@ -24,6 +27,7 @@ static class Catalog
 }
 
 record Hook(string type, string method);
+record Match(string api, string role, string type, string method);
 
 class Report
 {
@@ -32,20 +36,23 @@ class Report
     public bool usesSteamLobbies { get; set; }
     public bool usesSteamAuth { get; set; }
     public Dictionary<string, Hook> hooks { get; set; } = new();
-    public List<object> matches { get; set; } = new();
+    public List<Match> matches { get; set; } = new();
     public string feasibility { get; set; } = "unknown";
     public double confidence { get; set; }
     public string error { get; set; }
 }
 
+[JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(Report))]
+partial class ReportContext : JsonSerializerContext { }
+
 class Program
 {
     static int Main(string[] args)
     {
-        var opts = new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
         if (args.Length < 1)
         {
-            Console.WriteLine(JsonSerializer.Serialize(new Report { error = "usage: UnifiaAnalyzer <assembly.dll>" }, opts));
+            Print(new Report { error = "usage: UnifiaAnalyzer <assembly.dll>" });
             return 2;
         }
         var report = new Report();
@@ -85,12 +92,14 @@ class Program
             report.error = e.Message;
             report.netcode = "unknown";
             report.feasibility = "unknown";
-            Console.WriteLine(JsonSerializer.Serialize(report, opts));
+            Print(report);
             return 1;
         }
-        Console.WriteLine(JsonSerializer.Serialize(report, opts));
+        Print(report);
         return 0;
     }
+
+    static void Print(Report r) => Console.WriteLine(JsonSerializer.Serialize(r, ReportContext.Default.Report));
 
     static IEnumerable<TypeDefinition> AllTypes(ModuleDefinition mod)
     {
@@ -111,7 +120,7 @@ class Program
 
     static void ApplyMatch(Report r, (string Type, string Method, string Role, string Netcode) rule, string containingType, string containingMethod)
     {
-        r.matches.Add(new { api = rule.Type + "::" + rule.Method, role = rule.Role, type = containingType, method = containingMethod });
+        r.matches.Add(new Match(rule.Type + "::" + rule.Method, rule.Role, containingType, containingMethod));
         if (rule.Role == "steamLobby") r.usesSteamLobbies = true;
         if (rule.Role == "authTicket") r.usesSteamAuth = true;
         if (rule.Netcode != null && r.netcode == "unknown") r.netcode = rule.Netcode;

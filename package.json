@@ -50,6 +50,10 @@
       {
         "from": "mod/UnifiaPun/bin/Release/Unifia.Pun.dll",
         "to": "plugins/Unifia.Pun.dll"
+      },
+      {
+        "from": "tools/UnifiaAnalyzer/bin/Release/net9.0/win-x64/publish/UnifiaAnalyzer.exe",
+        "to": "analyzer/UnifiaAnalyzer.exe"
       }
     ],
     "directories": {
