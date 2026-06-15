@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ConnectorStatus from '../components/ConnectorStatus.jsx';
+import NetcodeCard from '../components/NetcodeCard.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
 // In-room status for a game: connector install state, the optional official-AppId
@@ -29,6 +30,7 @@ export default function MultiplayerTab({ game }) {
   return (
     <div className="flex flex-col gap-5">
       <ConnectorStatus gameId={game.id} />
+      <NetcodeCard game={game} />
 
       <p className="text-xs text-neutral-500">
         Generate or paste an invite code from the <span className="text-neutral-300">Invite</span>{' '}
