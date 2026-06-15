@@ -203,6 +203,14 @@ export const useAppStore = create((set, get) => ({
     return status;
   },
 
+  // --- Netcode analysis ---
+  analysis: {}, // gameId -> report
+  async analyzeGame(gameId) {
+    const report = await api.analyzeGame(gameId);
+    set((s) => ({ analysis: { ...s.analysis, [gameId]: report } }));
+    return report;
+  },
+
   // --- Mod presets ---
   presets: {}, // gameId -> { activeId, presets: [{ id, name, updatedAt, modCount }] }
   async loadPresets(gameId) {

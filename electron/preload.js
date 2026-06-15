@@ -68,6 +68,9 @@ contextBridge.exposeInMainWorld('unifia', {
   switchPreset: (gameId, id) => invoke('unifia:switchPreset', gameId, id),
   exportPreset: (gameId, id) => invoke('unifia:exportPreset', gameId, id),
   importPreset: (gameId, code, name) => invoke('unifia:importPreset', gameId, code, name),
+
+  // Netcode analyzer
+  analyzeGame: (gameId) => invoke('unifia:analyzeGame', gameId),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
