@@ -43,6 +43,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
+  const [recipeMeta, setRecipeMeta] = useState(null);
 
   useEffect(() => {
     if (game) loadMods(game);
@@ -53,6 +54,12 @@ export default function GameDetail({ game, onBack, goToModules }) {
   useEffect(() => {
     setPage(1);
   }, [query, sort, category, hub, tab]);
+
+  useEffect(() => {
+    let active = true;
+    window.unifia.getRecipeFor(game.id).then((m) => { if (active) setRecipeMeta(m); }).catch(() => {});
+    return () => { active = false; };
+  }, [game.id]);
 
   if (!game) return null;
 
@@ -167,6 +174,11 @@ export default function GameDetail({ game, onBack, goToModules }) {
         <p className="text-sm text-neutral-500">
           {modHubs.length ? `Mods from: ${modHubs.map((h) => h.label).join(', ')}` : 'No mod source for this game'}
         </p>
+        {recipeMeta && (
+          <p className="mt-0.5 text-xs text-accent">
+            Crossplay recipe: {recipeMeta.id} v{recipeMeta.version} ✓
+          </p>
+        )}
       </div>
 
       {!notInstalled && (
