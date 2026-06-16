@@ -1,17 +1,21 @@
 {
   "schemaVersion": 1,
   "id": "repo",
-  "notes": "REPO crossplay: pins a shared Photon AppVersion so different builds matchmake together.",
+  "notes": "REPO crossplay via inject-settings: overwrites Photon AppId+version at native connect so cracked+legit meet in the in-game server browser. Set photonAppId/photonVoiceAppId to your community Photon app before this enables crossplay.",
   "profile": {
     "game": "REPO",
     "netcode": "pun2",
-    "hookStrategy": "manual",
+    "hookStrategy": "inject-settings",
+    "connectHookType": "DataDirector",
+    "connectHookMethod": "PhotonSetAppId",
     "autoDelaySeconds": 3,
     "supportsNativeLobby": false,
     "connectionMode": "cloud-region",
     "region": "eu",
     "module": "bepinex_mono",
     "thunderstoreCommunity": "repo",
-    "photonAppVersion": "unifia-repo-cp1"
+    "photonAppVersion": "unifia-repo-cp1",
+    "photonAppId": "",
+    "photonVoiceAppId": ""
   }
 }

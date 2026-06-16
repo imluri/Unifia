@@ -21,6 +21,8 @@ const FIELD_TYPES = {
   module: 'string',
   thunderstoreCommunity: 'string',
   photonAppVersion: 'string',
+  photonAppId: 'string',
+  photonVoiceAppId: 'string',
 };
 
 // Compare dotted numeric versions: is `a` >= `b`? Non-numeric parts treated as 0.
