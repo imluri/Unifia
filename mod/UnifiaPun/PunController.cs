@@ -91,5 +91,44 @@ namespace Unifia.Pun
         public override void OnPlayerEnteredRoom(Player newPlayer) { WriteStatus(); }
         public override void OnPlayerLeftRoom(Player otherPlayer) { WriteStatus(); }
         public override void OnPlayerPropertiesUpdate(Player target, ExitGames.Client.Photon.Hashtable changedProps) { WriteStatus(); }
+
+        // --- Photon connection diagnostics (log-only; we don't reroute) ---------
+        // Logs the full PUN lifecycle so we can see whether the injected app is
+        // reachable and what fails when creating/joining a room.
+
+        public override void OnConnected() =>
+            UnifiaPlugin.Log.LogInfo("Photon: connected to name server.");
+
+        public override void OnConnectedToMaster() =>
+            UnifiaPlugin.Log.LogInfo(
+                $"Photon: CONNECTED TO MASTER — region={PhotonNetwork.CloudRegion}, " +
+                $"AppId={Mask(PhotonNetwork.PhotonServerSettings.AppSettings.AppIdRealtime)}, " +
+                $"AppVersion={PhotonNetwork.AppVersion}.");
+
+        public override void OnDisconnected(DisconnectCause cause) =>
+            UnifiaPlugin.Log.LogWarning($"Photon: DISCONNECTED — cause={cause}.");
+
+        public override void OnCustomAuthenticationFailed(string debugMessage) =>
+            UnifiaPlugin.Log.LogError($"Photon: CUSTOM AUTH FAILED — {debugMessage}. " +
+                "The Photon app likely requires Steam auth the cracked copy can't provide.");
+
+        public override void OnCreateRoomFailed(short returnCode, string message) =>
+            UnifiaPlugin.Log.LogWarning($"Photon: CreateRoom FAILED ({returnCode}): {message}.");
+
+        public override void OnJoinRoomFailed(short returnCode, string message) =>
+            UnifiaPlugin.Log.LogWarning($"Photon: JoinRoom FAILED ({returnCode}): {message}.");
+
+        public override void OnJoinRandomFailed(short returnCode, string message) =>
+            UnifiaPlugin.Log.LogInfo($"Photon: JoinRandom FAILED ({returnCode}): {message} " +
+                "(normal if no public room exists yet).");
+
+        public override void OnCreatedRoom() =>
+            UnifiaPlugin.Log.LogInfo($"Photon: CREATED room '{(PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.Name : "?")}'.");
+
+        private static string Mask(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "<empty>";
+            return s.Length <= 10 ? s : s.Substring(0, 8) + "…";
+        }
     }
 }
