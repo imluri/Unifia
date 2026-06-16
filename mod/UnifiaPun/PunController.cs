@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using BepInEx;
 using Photon.Pun;
 using Photon.Realtime;
@@ -99,6 +100,27 @@ namespace Unifia.Pun
         // --- Photon connection diagnostics (log-only; we don't reroute) ---------
         // Logs the full PUN lifecycle so we can see whether the injected app is
         // reachable and what fails when creating/joining a room.
+
+        // Log every Photon client-state transition so we can see exactly where a
+        // connection stalls (e.g. stuck in ConnectingToNameServer vs reaching master).
+        private ClientState _lastState = ClientState.PeerCreated;
+        private void Update()
+        {
+            var s = PhotonNetwork.NetworkClientState;
+            if (s != _lastState)
+            {
+                _lastState = s;
+                UnifiaPlugin.Log.LogInfo($"Photon state → {s}");
+            }
+        }
+
+        public override void OnRegionListReceived(RegionHandler regionHandler)
+        {
+            var regions = regionHandler != null && regionHandler.EnabledRegions != null
+                ? string.Join(", ", regionHandler.EnabledRegions.Select(r => r.Code).ToArray())
+                : "(none)";
+            UnifiaPlugin.Log.LogInfo($"Photon: REGION LIST received — [{regions}].");
+        }
 
         public override void OnConnected() =>
             UnifiaPlugin.Log.LogInfo("Photon: connected to name server.");
