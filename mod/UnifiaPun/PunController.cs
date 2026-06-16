@@ -174,8 +174,18 @@ namespace Unifia.Pun
             if (!string.IsNullOrEmpty(_net.VoiceAppId)) app.AppIdVoice = _net.VoiceAppId;
 
             if (!string.IsNullOrEmpty(_net.Username)) PhotonNetwork.NickName = _net.Username;
-            // Force a shared game version so Photon doesn't segregate by AppVersion.
-            if (!string.IsNullOrEmpty(_net.Version)) PhotonNetwork.GameVersion = _net.Version;
+            // Pin a shared Photon version so different game builds land in one virtual
+            // app. The recipe constant (photonAppVersion) wins; else the per-session
+            // invite version. Set BOTH AppSettings.AppVersion and GameVersion so the
+            // effective version is identical across copies regardless of how PUN derives it.
+            string pinnedVersion = !string.IsNullOrEmpty(_profile.photonAppVersion)
+                ? _profile.photonAppVersion
+                : _net.Version;
+            if (!string.IsNullOrEmpty(pinnedVersion))
+            {
+                app.AppVersion = pinnedVersion;
+                PhotonNetwork.GameVersion = pinnedVersion;
+            }
 
             PhotonNetwork.ConnectUsingSettings();
         }

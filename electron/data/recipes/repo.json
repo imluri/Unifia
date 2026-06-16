@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "repo",
-  "notes": "Mirror of the bundled REPO profile; exercises the pipeline with no behavior change.",
+  "notes": "REPO crossplay: pins a shared Photon AppVersion so different builds matchmake together.",
   "profile": {
     "game": "REPO",
     "netcode": "pun2",
@@ -11,6 +11,7 @@
     "connectionMode": "cloud-region",
     "region": "eu",
     "module": "bepinex_mono",
-    "thunderstoreCommunity": "repo"
+    "thunderstoreCommunity": "repo",
+    "photonAppVersion": "unifia-repo-cp1"
   }
 }

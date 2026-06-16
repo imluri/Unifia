@@ -20,6 +20,7 @@ const FIELD_TYPES = {
   connectionMode: 'string',
   module: 'string',
   thunderstoreCommunity: 'string',
+  photonAppVersion: 'string',
 };
 
 // Compare dotted numeric versions: is `a` >= `b`? Non-numeric parts treated as 0.
