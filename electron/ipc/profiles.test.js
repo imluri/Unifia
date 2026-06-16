@@ -57,3 +57,20 @@ test('applyAppIdOverride: no settings object is a no-op', () => {
   const out = applyAppIdOverride({ photonAppId: 'community' }, undefined);
   assert.strictEqual(out.photonAppId, 'community');
 });
+
+test('applyAppIdOverride: per-game invite AppId is used when no settings override', () => {
+  const out = applyAppIdOverride(
+    { photonAppId: '', photonVoiceAppId: '' },          // recipe community empty
+    {},                                                  // no global settings override
+    { photonAppId: '5327844c', photonVoiceAppId: '5c4680d5' }); // per-game invite
+  assert.strictEqual(out.photonAppId, '5327844c');
+  assert.strictEqual(out.photonVoiceAppId, '5c4680d5');
+});
+
+test('applyAppIdOverride: settings global override beats per-game invite', () => {
+  const out = applyAppIdOverride(
+    { photonAppId: 'community' },
+    { photonAppIdOverride: 'global' },
+    { photonAppId: 'pergame' });
+  assert.strictEqual(out.photonAppId, 'global');
+});

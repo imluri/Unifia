@@ -84,7 +84,10 @@ function launchGame(gameId, { args = [] } = {}) {
   try {
     patcher.writeProfileConfig(
       game.installPath,
-      profiles.applyAppIdOverride(profiles.matchProfile(game), store.get('settings')));
+      profiles.applyAppIdOverride(
+        profiles.matchProfile(game),
+        store.get('settings'),
+        (store.get('gameProfiles') || {})[game.id]));
   } catch {
     /* mod will use its built-in defaults */
   }

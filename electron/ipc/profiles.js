@@ -74,13 +74,23 @@ function matchProfile(game) {
   return resolveProfile({ base, entryProfile: { game: game.name, module }, analyzerOverride, recipeProfile });
 }
 
-// Overlay a user's private Photon AppId (from settings) onto a resolved profile.
-// A non-empty override beats the recipe's community AppId; blank/absent keeps it.
-function applyAppIdOverride(profile, settings) {
+// Resolve the effective Photon AppId onto a profile. Precedence (most specific
+// wins): a global Settings override → the per-game value the invite modal saved
+// (gameProfiles[id].photonAppId) → the recipe's community AppId already on the
+// profile. Empty strings never clobber a real value.
+function applyAppIdOverride(profile, settings, gameStored) {
   const s = settings || {};
+  const g = gameStored || {};
   const out = { ...profile };
-  const id = (s.photonAppIdOverride || '').trim();
-  const voice = (s.photonVoiceAppIdOverride || '').trim();
+  const pick = (...vals) => {
+    for (const v of vals) {
+      const t = (v || '').trim();
+      if (t) return t;
+    }
+    return '';
+  };
+  const id = pick(s.photonAppIdOverride, g.photonAppId);
+  const voice = pick(s.photonVoiceAppIdOverride, g.photonVoiceAppId);
   if (id) out.photonAppId = id;
   if (voice) out.photonVoiceAppId = voice;
   return out;
