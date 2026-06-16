@@ -15,6 +15,7 @@ const multiplayer = require('./ipc/multiplayer');
 const presets = require('./ipc/presets');
 const analyzer = require('./ipc/analyzer');
 const updater = require('./ipc/updater');
+const recipeStore = require('./ipc/recipeStore');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -239,6 +240,13 @@ function registerIpc() {
   });
   handle('unifia:getGameProfiles', () => store.get('gameProfiles'));
   handle('unifia:getDataDir', () => getDataDir());
+
+  handle('unifia:refreshRecipes', () => recipeStore.refreshRecipes({ force: true }));
+  handle('unifia:getRecipeStatus', () => recipeStore.recipeStatus());
+  handle('unifia:getRecipeFor', (gameId) => {
+    const game = (store.get('games') || []).find((g) => g.id === gameId);
+    return game ? recipeStore.recipeMetaFor(game) : null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -246,6 +254,7 @@ app.whenReady().then(() => {
   registerIpc();
   createWindow();
   updater.initUpdater(emit);
+  recipeStore.refreshRecipes().catch(() => { /* non-fatal: cache/bundled stays active */ });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -50,6 +50,9 @@ export const useAppStore = create((set, get) => ({
     return api.installUpdate();
   },
 
+  // Crossplay recipe status (null until first fetch)
+  recipeStatus: null,
+
   // Toast notifications: [{ id, type, message }]
   toasts: [],
   _toastSeq: 0,
@@ -164,6 +167,21 @@ export const useAppStore = create((set, get) => ({
     const updated = await api.renameGame(gameId, displayName);
     set((s) => ({ games: s.games.map((g) => (g.id === gameId ? updated : g)) }));
     return updated;
+  },
+
+  // --- Crossplay recipes ---
+  async refreshRecipes() {
+    const status = await api.refreshRecipes();
+    set({ recipeStatus: status });
+    return status;
+  },
+  async loadRecipeStatus() {
+    try {
+      const status = await api.getRecipeStatus();
+      set({ recipeStatus: status });
+    } catch {
+      /* leave null */
+    }
   },
 
   // --- Modules ---

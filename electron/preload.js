@@ -123,6 +123,9 @@ contextBridge.exposeInMainWorld('unifia', {
   saveSettings: (settings) => invoke('unifia:saveSettings', settings),
   getGameProfiles: () => invoke('unifia:getGameProfiles'),
   getDataDir: () => invoke('unifia:getDataDir'),
+  refreshRecipes: () => invoke('unifia:refreshRecipes'),
+  getRecipeStatus: () => invoke('unifia:getRecipeStatus'),
+  getRecipeFor: (gameId) => invoke('unifia:getRecipeFor', gameId),
 
   // Event subscriptions (return unsubscribe fns)
   onDownloadProgress: (cb) => subscribe('download-progress', cb),
