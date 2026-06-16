@@ -104,3 +104,31 @@ test('bundled repo.json carries photonAppVersion', () => {
   const out = R.validateRecipe(raw, '0.1.1');
   assert.strictEqual(out.profile.photonAppVersion, 'unifia-repo-cp1');
 });
+
+test('assembleRecipe carries the index match so matchRecipe can match', () => {
+  // The match lives in the index entry; the recipe file has only the profile.
+  const entry = { id: 'repo', match: { namePattern: '\\bREPO\\b' }, file: 'repo.json', version: 2 };
+  const raw = { schemaVersion: 1, id: 'repo', profile: { hookStrategy: 'manual', photonAppVersion: 'unifia-repo-cp1' } };
+  const r = R.assembleRecipe(entry, raw, '0.1.1');
+  assert.deepStrictEqual(r.match, { namePattern: '\\bREPO\\b' });
+  assert.strictEqual(r.version, 2);
+  const hit = R.matchRecipe([r], { name: 'REPO' });
+  assert.ok(hit, 'recipe should match a REPO game');
+  assert.strictEqual(hit.profile.photonAppVersion, 'unifia-repo-cp1');
+  assert.strictEqual(hit.profile.hookStrategy, 'manual');
+});
+
+test('assembleRecipe returns null for an invalid recipe file', () => {
+  assert.strictEqual(R.assembleRecipe({ match: {} }, { schemaVersion: 9 }, '0.1.1'), null);
+});
+
+test('bundled repo recipe, assembled with its index entry, matches REPO', () => {
+  const index = R.validateIndex(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'index.json'), 'utf8')));
+  const entry = index.find((e) => e.id === 'repo');
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'repo.json'), 'utf8'));
+  const r = R.assembleRecipe(entry, raw, '0.1.1');
+  const hit = R.matchRecipe([r], { name: 'REPO' });
+  assert.ok(hit, 'bundled REPO recipe should match a REPO game');
+  assert.strictEqual(hit.profile.hookStrategy, 'manual');
+  assert.strictEqual(hit.profile.photonAppVersion, 'unifia-repo-cp1');
+});

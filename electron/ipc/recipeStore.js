@@ -55,8 +55,8 @@ function loadBundled() {
     const recipes = [];
     for (const entry of index) {
       const raw = JSON.parse(fs.readFileSync(path.join(BUNDLED_DIR, entry.file), 'utf8'));
-      const valid = R.validateRecipe(raw, APP_VERSION);
-      if (valid) recipes.push({ ...valid, version: entry.version || 0 });
+      const recipe = R.assembleRecipe(entry, raw, APP_VERSION);
+      if (recipe) recipes.push(recipe);
     }
     return { fetchedAt: 0, source: 'bundled', recipes };
   } catch {
@@ -84,8 +84,8 @@ async function refreshRecipes({ force = false } = {}) {
       try {
         const res = await httpFetch(base + entry.file, { headers: { 'User-Agent': 'Unifia-Launcher' } });
         if (!res.ok) continue;
-        const valid = R.validateRecipe(await res.json(), APP_VERSION);
-        if (valid) recipes.push({ ...valid, version: entry.version || 0 });
+        const recipe = R.assembleRecipe(entry, await res.json(), APP_VERSION);
+        if (recipe) recipes.push(recipe);
       } catch {
         /* skip this recipe; others still load */
       }
