@@ -83,6 +83,17 @@ function validateIndex(raw) {
   );
 }
 
+// Combine an index entry (which carries the match + version) with a validated
+// recipe file (which carries the profile) into a single matchable recipe object.
+// The match lives ONLY in the index, so it must be copied here — otherwise the
+// assembled recipe has no match and matchRecipe can never match it.
+function assembleRecipe(entry, recipeRaw, appVersion) {
+  const valid = validateRecipe(recipeRaw, appVersion);
+  if (!valid) return null;
+  const match = entry && entry.match && typeof entry.match === 'object' ? entry.match : valid.match;
+  return { id: valid.id, match, profile: valid.profile, version: (entry && entry.version) || 0 };
+}
+
 // Find the recipe whose match fits the game: steamAppId first, then namePattern.
 function matchRecipe(recipes, game) {
   if (!Array.isArray(recipes)) return null;
@@ -102,4 +113,4 @@ function matchRecipe(recipes, game) {
   return null;
 }
 
-module.exports = { SCHEMA_VERSION, FIELD_TYPES, versionGte, safeRegex, sanitizeProfile, validateRecipe, validateIndex, matchRecipe };
+module.exports = { SCHEMA_VERSION, FIELD_TYPES, versionGte, safeRegex, sanitizeProfile, validateRecipe, validateIndex, assembleRecipe, matchRecipe };
