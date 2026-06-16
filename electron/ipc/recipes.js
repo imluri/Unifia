@@ -23,6 +23,7 @@ const FIELD_TYPES = {
   photonAppVersion: 'string',
   photonAppId: 'string',
   photonVoiceAppId: 'string',
+  disableSteamAuth: 'boolean',
 };
 
 // Compare dotted numeric versions: is `a` >= `b`? Non-numeric parts treated as 0.

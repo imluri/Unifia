@@ -152,4 +152,12 @@ test('bundled REPO recipe is inject-settings with the DataDirector hook', () => 
   assert.strictEqual(hit.profile.connectHookType, 'DataDirector');
   assert.strictEqual(hit.profile.connectHookMethod, 'PhotonSetAppId');
   assert.strictEqual(hit.profile.photonAppVersion, 'unifia-repo-cp1');
+  assert.strictEqual(hit.profile.disableSteamAuth, true);
+});
+
+test('validateRecipe keeps boolean disableSteamAuth and drops a non-boolean', () => {
+  const ok = R.validateRecipe({ schemaVersion: 1, id: 'x', profile: { disableSteamAuth: true } }, '0.1.1');
+  assert.strictEqual(ok.profile.disableSteamAuth, true);
+  const bad = R.validateRecipe({ schemaVersion: 1, id: 'x', profile: { disableSteamAuth: 'yes' } }, '0.1.1');
+  assert.strictEqual('disableSteamAuth' in bad.profile, false);
 });
