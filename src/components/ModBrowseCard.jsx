@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getDeploymentTargetLabel } from '../lib/modDeployment.js';
 import { useAppStore } from '../store/useAppStore.js';
 
 function fmtCount(n) {
@@ -37,6 +38,9 @@ export default function ModBrowseCard({ game, mod, readOnly = false }) {
           <span className="truncate text-sm font-semibold text-neutral-100">{mod.name}</span>
           <span className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400 ring-1 ring-border-default">
             {mod.hubLabel}
+          </span>
+          <span title={`Deploys to: ${getDeploymentTargetLabel(mod.fullName)}`} className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-500">
+            {getDeploymentTargetLabel(mod.fullName)}
           </span>
           {mod.deprecated && (
             <span className="rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] text-red-300">deprecated</span>

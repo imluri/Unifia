@@ -140,15 +140,22 @@ function registerIpc() {
   // --- Thunderstore mods ---
   handle('unifia:fetchModList', (gameId, opts) => modManager.fetchModList(gameId, opts || {}));
   handle('unifia:getInstalledMods', (gameId) => modManager.getInstalledMods(gameId));
+  handle('unifia:validateInstalledMods', (gameId) => modManager.validateInstalledMods(gameId));
   handle('unifia:gameHasBepInEx', (gameId) => modManager.gameHasBepInEx(gameId));
   handle('unifia:installMod', (gameId, fullName, version) =>
     modManager.installMod(gameId, fullName, version, (p) => emit('download-progress', { mod: true, ...p }))
   );
   handle('unifia:uninstallMod', (gameId, fullName) => modManager.uninstallMod(gameId, fullName));
+  handle('unifia:restoreArchivedMod', (gameId, fullName) => modManager.restoreArchivedMod(gameId, fullName));
+  handle('unifia:listArchivedMods', (gameId) => modManager.listArchivedMods(gameId));
   handle('unifia:setModEnabled', (gameId, fullName, enabled) =>
     modManager.setModEnabled(gameId, fullName, enabled)
   );
   handle('unifia:checkModUpdates', (gameId) => modManager.checkModUpdates(gameId));
+  handle('unifia:getModDependents', (gameId, fullName) => modManager.getModDependents(gameId, fullName));
+  handle('unifia:getModConflicts', (gameId, fullName) => modManager.getModConflicts(gameId, fullName));
+  handle('unifia:getModLoadOrder', (gameId) => modManager.getModLoadOrder(gameId));
+  handle('unifia:setModLoadOrder', (gameId, ordered) => modManager.setModLoadOrder(gameId, ordered));
   handle('unifia:fetchDiscoverGames', (opts) => modManager.getDiscoverGames(opts || {}));
   handle('unifia:fetchModListForCommunity', (community, opts) =>
     modManager.fetchModListForCommunity(community, opts || {})

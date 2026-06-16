@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import GameDetail from './pages/GameDetail.jsx';
 import { useAppStore } from './store/useAppStore.js';
+import { getAppVersion } from './lib/version.js';
 import Home from './pages/Home.jsx';
 import Modules from './pages/Modules.jsx';
 import Settings from './pages/Settings.jsx';
@@ -83,7 +84,7 @@ function MainLayout() {
               );
             })}
           </ul>
-          <div className="px-5 py-4 text-[10px] text-neutral-600">v0.1.0 · MIT</div>
+          <div className="px-5 py-4 text-[10px] text-neutral-600">v{getAppVersion()} · MIT</div>
         </nav>
 
         {/* Main content. Keyed by page so each switch replays the enter animation. */}

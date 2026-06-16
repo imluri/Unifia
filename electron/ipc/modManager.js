@@ -8,6 +8,7 @@ const thunderstore = require('./thunderstore');
 const profiles = require('./profiles');
 const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
 const { aggregateMods } = require('./modHubs/aggregate');
+const { getDependents: getDependentsFromGraph, detectConflicts, computeDependents } = require('./modMetadata');
 const { getProviders } = require('./modHubs');
 const { filterDiscover } = require('./modHubs/discover');
 const presetStore = require('./presetStore');
@@ -46,6 +47,28 @@ function hasEnabledBepInExPack(gameId) {
 function getInstalledMods(gameId) {
   const state = modsState(gameId);
   return Object.entries(state).map(([fullName, m]) => ({ fullName, ...m }));
+}
+
+// Detect and clean up mods whose files are missing from disk
+// Returns { missing: [fullNames], cleaned: boolean }
+function validateInstalledMods(gameId) {
+  const state = { ...modsState(gameId) };
+  const missing = [];
+  
+  for (const [fullName] of Object.entries(state)) {
+    const staging = path.join(presetDir(gameId), fullName);
+    if (!fs.existsSync(staging)) {
+      missing.push(fullName);
+      delete state[fullName];
+    }
+  }
+  
+  if (missing.length > 0) {
+    saveModsState(gameId, state);
+    return { gameId, missing, cleaned: true };
+  }
+  
+  return { gameId, missing: [], cleaned: false };
 }
 
 // Detect a BepInEx loader already present in the game folder on disk — e.g. a
@@ -136,6 +159,8 @@ async function installMod(gameId, fullName, version, onProgress) {
   if (set.length === 0) return { gameId, installed: [] };
 
   const state = { ...installed };
+  const maxLoadOrder = Math.max(0, ...Object.values(state).map((m) => m.loadOrder || 0));
+  
   for (const item of set) {
     await stageVersion(gameId, item.fullName, item.versionData, (p) =>
       onProgress && onProgress({ fullName: item.fullName, ...p })
@@ -145,20 +170,76 @@ async function installMod(gameId, fullName, version, onProgress) {
       enabled: true,
       isDependency: item.fullName !== fullName && !(installed[item.fullName] && !installed[item.fullName].isDependency),
       deployedFiles: [],
+      loadOrder: (state[item.fullName]?.loadOrder) ?? (maxLoadOrder + 1),
     };
   }
   saveModsState(gameId, state);
   return { gameId, installed: set.map((s) => ({ fullName: s.fullName, version: s.version })) };
 }
 
+// Archive directory for disabled/removed mods
+function archiveDir(gameId) {
+  return path.join(modsDir(gameId, presetStore.getActiveId(gameId)), '.archive');
+}
+
 // Remove a mod from staging + state (deploy reconciles the live game folder).
+// Mods are archived (moved to .archive/) rather than deleted, allowing recovery.
 function uninstallMod(gameId, fullName) {
   const state = { ...modsState(gameId) };
   if (!state[fullName]) return { gameId, fullName, removed: false };
-  fs.rmSync(path.join(presetDir(gameId), fullName), { recursive: true, force: true });
+  
+  const staging = path.join(presetDir(gameId), fullName);
+  if (fs.existsSync(staging)) {
+    const archive = archiveDir(gameId);
+    ensureDir(archive);
+    const archivePath = path.join(archive, fullName);
+    // Remove existing archived version if present
+    fs.rmSync(archivePath, { recursive: true, force: true });
+    // Move to archive
+    fs.renameSync(staging, archivePath);
+  }
+  
   delete state[fullName];
   saveModsState(gameId, state);
   return { gameId, fullName, removed: true };
+}
+
+// Restore a mod from archive back to staging (re-enables it)
+function restoreArchivedMod(gameId, fullName) {
+  const state = { ...modsState(gameId) };
+  const archivePath = path.join(archiveDir(gameId), fullName);
+  
+  if (!fs.existsSync(archivePath)) {
+    throw new Error(`Archived mod not found: ${fullName}`);
+  }
+  
+  const staging = path.join(presetDir(gameId), fullName);
+  // Remove if staging already exists (shouldn't happen, but be safe)
+  fs.rmSync(staging, { recursive: true, force: true });
+  
+  fs.renameSync(archivePath, staging);
+  state[fullName] = {
+    version: state[fullName]?.version || 'unknown',
+    enabled: true,
+    isDependency: state[fullName]?.isDependency || false,
+    deployedFiles: [],
+  };
+  saveModsState(gameId, state);
+  return { gameId, fullName, restored: true };
+}
+
+// Scan for archived mods and list them
+function listArchivedMods(gameId) {
+  const archive = archiveDir(gameId);
+  if (!fs.existsSync(archive)) return [];
+  
+  const archived = [];
+  for (const entry of fs.readdirSync(archive, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      archived.push({ fullName: entry.name });
+    }
+  }
+  return archived;
 }
 
 function setModEnabled(gameId, fullName, enabled) {
@@ -240,16 +321,69 @@ function deployMods(gameId, installPath) {
   return { gameId, deployed: Object.values(state).filter((m) => m.enabled).length };
 }
 
+// Get mods that depend on a specific mod
+async function getModDependents(gameId, fullName) {
+  const game = findGame(gameId);
+  const community = communityFor(game);
+  if (!community) return [];
+  
+  const packages = await thunderstore.fetchModList(community, {});
+  const state = modsState(gameId);
+  return getDependentsFromGraph(fullName, state, packages);
+}
+
+// Detect conflicts with the current mod
+async function getModConflicts(gameId, fullName) {
+  const game = findGame(gameId);
+  const community = communityFor(game);
+  if (!community) return [];
+  
+  const packages = await thunderstore.fetchModList(community, {});
+  const state = modsState(gameId);
+  return detectConflicts(fullName, state, packages);
+}
+
+// Get the current load order for all mods
+function getModLoadOrder(gameId) {
+  const state = modsState(gameId);
+  return Object.entries(state)
+    .map(([fullName, m]) => ({ fullName, loadOrder: m.loadOrder || 0, enabled: m.enabled }))
+    .sort((a, b) => a.loadOrder - b.loadOrder);
+}
+
+// Update load order for mods (reorders by given array of fullNames)
+function setModLoadOrder(gameId, orderedFullNames) {
+  const state = { ...modsState(gameId) };
+  
+  // Assign new load orders based on position in array
+  for (let i = 0; i < orderedFullNames.length; i++) {
+    const fullName = orderedFullNames[i];
+    if (state[fullName]) {
+      state[fullName].loadOrder = i;
+    }
+  }
+  
+  saveModsState(gameId, state);
+  return { gameId, reordered: orderedFullNames.length };
+}
+
 module.exports = {
   fetchModList,
   getDiscoverGames,
   fetchModListForCommunity,
   getInstalledMods,
+  validateInstalledMods,
   gameHasBepInEx,
   installMod,
   uninstallMod,
+  restoreArchivedMod,
+  listArchivedMods,
   setModEnabled,
   checkModUpdates,
+  getModDependents,
+  getModConflicts,
+  getModLoadOrder,
+  setModLoadOrder,
   communityFor,
   modsState,
   saveModsState,

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Button from './ui/Button.jsx';
 import ConfirmDialog from './ui/ConfirmDialog.jsx';
+import { exportPreset as exportPresetToJson, importPreset as importPresetFromJson, downloadPreset } from '../lib/presetExport.js';
 import { useAppStore } from '../store/useAppStore.js';
 
 export default function PresetBar({ game }) {
@@ -13,7 +14,9 @@ export default function PresetBar({ game }) {
   const exportPreset = useAppStore((s) => s.exportPreset);
   const importPreset = useAppStore((s) => s.importPreset);
   const pushToast = useAppStore((s) => s.pushToast);
+  const installedMods = useAppStore((s) => s.installedMods);
 
+  const fileInputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -45,6 +48,46 @@ export default function PresetBar({ game }) {
     setNameVal(mode === 'rename' && active ? active.name : '');
   }
 
+  function handleExportFile() {
+    if (!data) return;
+    const activeName = data.presets.find((p) => p.id === data.activeId)?.name || 'preset';
+    const mods = Object.fromEntries(installedMods.map((m) => [m.fullName, {
+      version: m.version,
+      enabled: m.enabled,
+      loadOrder: m.loadOrder || 0,
+    }]));
+    const json = exportPresetToJson(activeName, mods, {
+      game: game.name,
+      gameId: game.id,
+      modCount: installedMods.length,
+    });
+    const filename = `${activeName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`;
+    downloadPreset(json, filename);
+    pushToast({ type: 'success', message: `Preset exported as ${filename}` });
+  }
+
+  function handleImportFileClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const text = await file.text();
+      const imported = importPresetFromJson(text);
+      const name = imported.name || undefined;
+      await importPreset(game.id, text, name, game);
+      pushToast({ type: 'success', message: `Imported preset ${imported.name || 'file'} (${imported.mods.length} mods).` });
+    } catch (err) {
+      pushToast({ type: 'error', message: err.message || String(err) });
+    } finally {
+      setBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   async function submitName() {
     const name = nameVal.trim();
     if (!name) return;
@@ -61,6 +104,14 @@ export default function PresetBar({ game }) {
 
   return (
     <div className="mb-3 rounded border border-border-default bg-neutral-900/40 px-3 py-2.5">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={handleImportFile}
+        className="hidden"
+        disabled={busy}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-neutral-500">Preset</span>
         <select
@@ -86,6 +137,8 @@ export default function PresetBar({ game }) {
 
         <span className="mx-1 h-4 w-px bg-border-default" />
 
+        <Button size="sm" icon="download" disabled={busy} onClick={handleExportFile}>Export file</Button>
+        <Button size="sm" icon="upload" disabled={busy} onClick={handleImportFileClick}>Import file</Button>
         <Button size="sm" icon="copy" disabled={busy}
           onClick={() => run(async () => {
             const c = await exportPreset(game.id, data.activeId);

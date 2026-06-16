@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import ModBrowseCard from '../components/ModBrowseCard.jsx';
 import InstalledModRow from '../components/InstalledModRow.jsx';
+import ArchivedModsSection from '../components/ArchivedModsSection.jsx';
+import ModLoadOrderManager from '../components/ModLoadOrderManager.jsx';
 import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import MultiplayerTab from './MultiplayerTab.jsx';
 import PresetBar from '../components/PresetBar.jsx';
@@ -21,6 +23,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const modHubs = useAppStore((s) => s.modHubs);
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
+  const modProgress = useAppStore((s) => s.modProgress);
   const bepInExOnDisk = useAppStore((s) => s.bepInExOnDisk);
   const connector = useAppStore((s) => s.connector[game?.id]);
   const installMod = useAppStore((s) => s.installMod);
@@ -44,6 +47,8 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [recipeMeta, setRecipeMeta] = useState(null);
+  const [installedQuery, setInstalledQuery] = useState('');
+  const [installedFilter, setInstalledFilter] = useState('all'); // all | enabled | disabled
 
   useEffect(() => {
     if (game) loadMods(game);
@@ -81,9 +86,33 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const pageClamped = Math.min(page, totalPages);
   const pageItems = browse.slice((pageClamped - 1) * BROWSE_PAGE_SIZE, pageClamped * BROWSE_PAGE_SIZE);
 
+  // Merge installed mods with mods currently downloading to show immediate feedback
+  const displayedMods = [
+    ...installedMods,
+    ...Object.keys(modProgress)
+      .filter((fullName) => !installedMods.some((m) => m.fullName === fullName))
+      .map((fullName) => ({
+        fullName,
+        version: 'installing',
+        enabled: true,
+        isDependency: false,
+      })),
+  ];
+
+  // Installed-tab search (name/owner) + enabled/disabled filter.
+  const filteredInstalled = displayedMods
+    .filter((m) =>
+      installedFilter === 'enabled' ? m.enabled
+      : installedFilter === 'disabled' ? !m.enabled
+      : true)
+    .filter((m) => {
+      const q = installedQuery.trim().toLowerCase();
+      return !q || `${m.name || ''} ${m.fullName || ''} ${m.owner || ''}`.toLowerCase().includes(q);
+    });
+
   // The loader can come from a Unifia-installed BepInExPack OR already exist in
   // the game folder (repacks/cracked builds often bundle it) — either satisfies it.
-  const hasBepInEx = bepInExOnDisk || installedMods.some((m) => /bepinexpack/i.test(m.fullName));
+  const hasBepInEx = bepInExOnDisk || displayedMods.some((m) => /bepinexpack/i.test(m.fullName));
   const bepPkg = modList.find((m) => /bepinexpack/i.test(m.fullName));
   async function installBepInEx() {
     if (!bepPkg) return;
@@ -210,7 +239,12 @@ export default function GameDetail({ game, onBack, goToModules }) {
         </div>
       )}
 
-      {modError ? (
+      {modsLoading ? (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-b-transparent" />
+          <span className="text-sm text-neutral-400">Loading mods…</span>
+        </div>
+      ) : modError ? (
         <div className="rounded-lg border border-red-900/50 bg-red-900/20 p-6 text-center text-sm text-red-300">
           Couldn&apos;t load mods: {modError}
           <div className="mt-3">
@@ -228,7 +262,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
         </div>
       ) : (
         <>
-          {!modsLoading && !notInstalled && !hasBepInEx && (
+          {!notInstalled && !hasBepInEx && (
             <div className="mb-4 rounded border border-yellow-900/40 bg-yellow-900/15 px-4 py-3 text-sm">
               {bepPkg ? (
                 <div className="flex items-center justify-between gap-3">
@@ -292,13 +326,46 @@ export default function GameDetail({ game, onBack, goToModules }) {
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="skeleton h-[68px] rounded" />
                 ))
-              ) : installedMods.length === 0 ? (
+              ) : displayedMods.length === 0 ? (
                 <div className="flex items-center gap-1 text-sm text-neutral-500">
                   No mods installed yet.
                   <Button variant="ghost" size="sm" onClick={() => setTab('browse')}>Browse mods</Button>
                 </div>
               ) : (
-                installedMods.map((m) => <InstalledModRow key={m.fullName} game={game} mod={m} />)
+                <>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <input
+                      value={installedQuery}
+                      onChange={(e) => setInstalledQuery(e.target.value)}
+                      placeholder="Search installed mods…"
+                      className="min-w-[180px] flex-1 rounded bg-neutral-800 px-3 py-2 text-sm outline-none"
+                    />
+                    <div className="flex shrink-0 overflow-hidden rounded ring-1 ring-border-default">
+                      {['all', 'enabled', 'disabled'].map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setInstalledFilter(f)}
+                          className={`px-3 py-2 text-xs capitalize transition ${
+                            installedFilter === f
+                              ? 'bg-accent/20 text-accent'
+                              : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200'
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {filteredInstalled.length === 0 ? (
+                    <p className="text-sm text-neutral-500">No installed mods match your search or filter.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredInstalled.map((m) => <InstalledModRow key={m.fullName} game={game} mod={m} />)}
+                    </div>
+                  )}
+                  <ModLoadOrderManager game={game} />
+                  <ArchivedModsSection game={game} />
+                </>
               )}
             </div>
           ) : (

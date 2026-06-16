@@ -53,6 +53,7 @@ contextBridge.exposeInMainWorld('unifia', {
   // Thunderstore mods
   fetchModList: (gameId, opts) => invoke('unifia:fetchModList', gameId, opts),
   getInstalledMods: (gameId) => invoke('unifia:getInstalledMods', gameId),
+  validateInstalledMods: (gameId) => invoke('unifia:validateInstalledMods', gameId),
   gameHasBepInEx: (gameId) => invoke('unifia:gameHasBepInEx', gameId),
 
   // Multiplayer (share-code)
@@ -81,8 +82,14 @@ contextBridge.exposeInMainWorld('unifia', {
   onUpdateDownloaded: (cb) => subscribe('update-downloaded', cb),
   installMod: (gameId, fullName, version) => invoke('unifia:installMod', gameId, fullName, version),
   uninstallMod: (gameId, fullName) => invoke('unifia:uninstallMod', gameId, fullName),
+  restoreArchivedMod: (gameId, fullName) => invoke('unifia:restoreArchivedMod', gameId, fullName),
+  listArchivedMods: (gameId) => invoke('unifia:listArchivedMods', gameId),
   setModEnabled: (gameId, fullName, enabled) => invoke('unifia:setModEnabled', gameId, fullName, enabled),
   checkModUpdates: (gameId) => invoke('unifia:checkModUpdates', gameId),
+  getModDependents: (gameId, fullName) => invoke('unifia:getModDependents', gameId, fullName),
+  getModConflicts: (gameId, fullName) => invoke('unifia:getModConflicts', gameId, fullName),
+  getModLoadOrder: (gameId) => invoke('unifia:getModLoadOrder', gameId),
+  setModLoadOrder: (gameId, ordered) => invoke('unifia:setModLoadOrder', gameId, ordered),
   fetchDiscoverGames: (opts) => invoke('unifia:fetchDiscoverGames', opts),
   fetchModListForCommunity: (community, opts) =>
     invoke('unifia:fetchModListForCommunity', community, opts),

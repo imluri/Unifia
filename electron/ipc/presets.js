@@ -95,14 +95,27 @@ function exportPreset(gameId, id) {
 // Create a new preset from a code and switch to it (verify+install).
 async function importPreset(gameId, code, name, onProgress) {
   const game = findGame(gameId);
-  const d = decodeInvite(code);
+  let d;
+
+  // Support both shareable invite codes and exported preset JSON files.
+  try {
+    d = decodeInvite(code);
+  } catch (err) {
+    try {
+      d = JSON.parse(code);
+    } catch (jsonErr) {
+      throw err;
+    }
+  }
+
   const community = modManager.communityFor(game);
   if (d.community && community && d.community !== community) {
     throw new Error(`This code is for ${d.community}, not this game.`);
   }
-  const id = presetStore.create(gameId, name || `Imported ${new Date().toLocaleDateString()}`, false);
+
+  const id = presetStore.create(gameId, name || d.name || `Imported ${new Date().toLocaleDateString()}`, false);
   presetStore.setActive(gameId, id);
-  const diff = await ensureInstalled(gameId, d.mods, onProgress);
+  const diff = await ensureInstalled(gameId, (d.mods || []).map((m) => ({ fullName: m.fullName, version: m.version })), onProgress);
   return { list: presetStore.list(gameId), diff };
 }
 

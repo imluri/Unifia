@@ -27,8 +27,11 @@ export const useAppStore = create((set, get) => ({
   // Mods (per open game detail view)
   modList: [], // browse list for the active community
   modHubs: [], // [{ id, label }] hubs that map the open game
-  installedMods: [], // [{ fullName, version, enabled, isDependency }]
+  installedMods: [], // [{ fullName, version, enabled, isDependency, loadOrder }]
   modUpdates: [], // [{ fullName, current, latest }]
+  modDependents: {}, // { fullName: [fullNames that depend on it] }
+  modConflicts: {}, // { fullName: [{fullName, category, reason}] }
+  modLoadOrder: [], // [{ fullName, loadOrder, enabled }]
   modsLoading: false,
   modError: null, // surfaced when the Thunderstore list fails to load
   modProgress: {}, // fullName -> { percent }
@@ -308,7 +311,7 @@ export const useAppStore = create((set, get) => ({
   async loadMods(game, { refresh = false } = {}) {
     // Clear the previous game's lists up front so opening a card shows a loading
     // state, never a stale list or a premature "nothing installed" flash.
-    set({ modsLoading: true, modError: null, modList: [], modHubs: [], installedMods: [], modUpdates: [] });
+    set({ modsLoading: true, modError: null, modList: [], modHubs: [], installedMods: [], modUpdates: [], modLoadOrder: [], modDependents: {}, modConflicts: {} });
     try {
       // Not-installed Discover games aren't in the store; fetch their mod list
       // by community directly instead of by gameId.
@@ -316,13 +319,25 @@ export const useAppStore = create((set, get) => ({
       const listPromise = notInstalled
         ? api.fetchModListForCommunity(game.community, { refresh })
         : api.fetchModList(game.id, { refresh });
-      const [{ hubs, packages }, installed, bepInExOnDisk] = await Promise.all([
+      const [{ hubs, packages }, installed, bepInExOnDisk, loadOrder] = await Promise.all([
         listPromise,
         api.getInstalledMods(game.id),
         // Not-installed Discover games have no install folder to inspect.
         notInstalled ? Promise.resolve(false) : api.gameHasBepInEx(game.id),
+        notInstalled ? Promise.resolve([]) : api.getModLoadOrder(game.id),
       ]);
-      set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk });
+      
+      // Validate installed mods and clean up any missing ones
+      if (!notInstalled) {
+        const validation = await api.validateInstalledMods(game.id);
+        if (validation.missing.length > 0) {
+          console.warn(`Cleaned up ${validation.missing.length} missing mods:`, validation.missing);
+          // Refresh installed mods after cleanup
+          installed = await api.getInstalledMods(game.id);
+        }
+      }
+      
+      set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk, modLoadOrder: loadOrder });
       // Connector status powers the Installed-tab pinned row (installed games only).
       if (!notInstalled) get().refreshConnector(game.id);
       if (!notInstalled) get().loadPresets(game.id);
@@ -369,10 +384,19 @@ export const useAppStore = create((set, get) => ({
       return { modProgress: next };
     });
     set({ installedMods: await api.getInstalledMods(gameId) });
+    // Immediately check for updates on newly installed mods so badges show right away
+    await get().refreshModUpdates(gameId);
   },
   async uninstallMod(gameId, fullName) {
     await api.uninstallMod(gameId, fullName);
     set({ installedMods: await api.getInstalledMods(gameId) });
+  },
+  async restoreArchivedMod(gameId, fullName) {
+    await api.restoreArchivedMod(gameId, fullName);
+    set({ installedMods: await api.getInstalledMods(gameId) });
+  },
+  async listArchivedMods(gameId) {
+    return await api.listArchivedMods(gameId);
   },
   // Re-check which installed mods have newer versions (clears stale "Update →"
   // badges after an update). Safe to call for installed games only.
@@ -386,6 +410,42 @@ export const useAppStore = create((set, get) => ({
   async setModEnabled(gameId, fullName, enabled) {
     await api.setModEnabled(gameId, fullName, enabled);
     set({ installedMods: await api.getInstalledMods(gameId) });
+  },
+  async getModDependents(gameId, fullName) {
+    try {
+      const dependents = await api.getModDependents(gameId, fullName);
+      set((s) => ({ modDependents: { ...s.modDependents, [fullName]: dependents } }));
+      return dependents;
+    } catch {
+      return [];
+    }
+  },
+  async getModConflicts(gameId, fullName) {
+    try {
+      const conflicts = await api.getModConflicts(gameId, fullName);
+      set((s) => ({ modConflicts: { ...s.modConflicts, [fullName]: conflicts } }));
+      return conflicts;
+    } catch {
+      return [];
+    }
+  },
+  async getModLoadOrder(gameId) {
+    try {
+      const loadOrder = await api.getModLoadOrder(gameId);
+      set({ modLoadOrder: loadOrder });
+      return loadOrder;
+    } catch {
+      return [];
+    }
+  },
+  async setModLoadOrder(gameId, orderedFullNames) {
+    try {
+      await api.setModLoadOrder(gameId, orderedFullNames);
+      const loadOrder = await api.getModLoadOrder(gameId);
+      set({ modLoadOrder: loadOrder });
+    } catch (err) {
+      console.error('Failed to reorder mods:', err);
+    }
   },
 
   // --- Launch ---
