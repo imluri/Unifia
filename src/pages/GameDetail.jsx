@@ -29,6 +29,8 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const updateGamePath = useAppStore((s) => s.updateGamePath);
   const refreshBepInEx = useAppStore((s) => s.refreshBepInEx);
   const pushToast = useAppStore((s) => s.pushToast);
+  const renameGame = useAppStore((s) => s.renameGame);
+  const liveGame = useAppStore((s) => s.games.find((g) => g.id === game.id)) || game;
 
   const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
   const [bepBusy, setBepBusy] = useState(false);
@@ -39,6 +41,8 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [page, setPage] = useState(1);
   const [moduleOpen, setModuleOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
 
   useEffect(() => {
     if (game) loadMods(game);
@@ -101,6 +105,11 @@ export default function GameDetail({ game, onBack, goToModules }) {
     await removeGame(game.id);
     onBack();
   }
+  async function saveName() {
+    const draft = nameDraft.trim();
+    await renameGame(game.id, draft); // blank clears the nickname
+    setEditingName(false);
+  }
   async function handleChangeFolder() {
     const picked = await window.unifia.pickDirectory();
     if (!picked) return;
@@ -126,7 +135,35 @@ export default function GameDetail({ game, onBack, goToModules }) {
       </button>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-neutral-100">{game.name}</h1>
+        {editingName ? (
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+              placeholder={liveGame.name}
+              className="rounded bg-neutral-800 px-2 py-1 text-2xl font-bold text-neutral-100 ring-1 ring-border-default focus:outline-none focus:ring-accent/50"
+            />
+            <button onClick={saveName} className="rounded bg-accent/20 px-2 py-1 text-sm text-accent hover:bg-accent/30">Save</button>
+            <button onClick={() => setEditingName(false)} className="rounded px-2 py-1 text-sm text-neutral-400 hover:text-neutral-200">Cancel</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-neutral-100" title={liveGame.name}>
+              {liveGame.displayName || liveGame.name}
+            </h1>
+            {liveGame.manual && (
+              <button
+                onClick={() => { setNameDraft(liveGame.displayName || ''); setEditingName(true); }}
+                className="text-neutral-500 hover:text-neutral-200"
+                title="Rename (set a label to tell clones apart)"
+              >
+                <Icon name="pencil" size={16} />
+              </button>
+            )}
+          </div>
+        )}
         <p className="text-sm text-neutral-500">
           {modHubs.length ? `Mods from: ${modHubs.map((h) => h.label).join(', ')}` : 'No mod source for this game'}
         </p>

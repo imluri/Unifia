@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import GameCard from '../components/GameCard.jsx';
+import { findCloneIds } from '../lib/clones.mjs';
 import Icon from '../components/Icon.jsx';
 import DiscoverCard from '../components/DiscoverCard.jsx';
 import Modal from '../components/ui/Modal.jsx';
@@ -206,6 +207,8 @@ export default function Home({ onOpenGame }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [games, gameProfiles, q, filters]
   );
+
+  const cloneIds = useMemo(() => findCloneIds(games), [games]);
 
   // Build the chips per facet: distinct values present in the library, each with
   // a contextual count of how many games show up if that value is applied.
@@ -442,6 +445,7 @@ export default function Home({ onOpenGame }) {
           {filteredGames.map((game, i) => (
             <GameCard
               key={game.id}
+              isClone={cloneIds.has(game.id)}
               index={i}
               view={view}
               game={game}

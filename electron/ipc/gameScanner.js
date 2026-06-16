@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
+const gameLogic = require('./gameLogic');
 const { execSync } = require('child_process');
 const { store } = require('../store');
 const { logsDir } = require('../paths');
@@ -401,11 +403,9 @@ function addManualGame({ name, executablePath, version, store: storeName }) {
     throw new Error('Manual game requires at least a name and executable path');
   }
   const games = store.get('games') || [];
-  const id = `${storeName || 'custom'}:${name}`;
   const installPath = path.dirname(executablePath);
   const engineInfo = detectEngine(installPath);
   const game = {
-    id,
     name,
     version: version || detectVersion(installPath),
     executablePath,
@@ -414,12 +414,13 @@ function addManualGame({ name, executablePath, version, store: storeName }) {
     engine: engineInfo.engine,
     engineName: engineInfo.engineName,
     unityBackend: engineInfo.backend,
-    manual: true,
   };
-  const filtered = games.filter((g) => g.id !== id);
-  filtered.push(game);
-  store.set('games', filtered);
-  return game;
+  const next = gameLogic.appendManualGame(games, game, () =>
+    gameLogic.newManualId((n) => crypto.randomBytes(n)),
+  );
+  store.set('games', next);
+  // Return the record that was actually stored (matched by executablePath).
+  return next.find((g) => g.executablePath === executablePath);
 }
 
 function removeGame(gameId) {
@@ -452,6 +453,14 @@ function updateGamePath(gameId, newInstallPath) {
   return updated;
 }
 
+// Set or clear a game's display label (nickname). Used to disambiguate clones.
+function renameGame(gameId, displayName) {
+  const games = store.get('games') || [];
+  const next = gameLogic.renameGameIn(games, gameId, displayName);
+  store.set('games', next);
+  return next.find((g) => g.id === gameId);
+}
+
 module.exports = {
   scanGames,
   scanSteamGames,
@@ -459,5 +468,6 @@ module.exports = {
   addManualGame,
   removeGame,
   updateGamePath,
+  renameGame,
   detectVersion,
 };
