@@ -69,3 +69,23 @@ test('matchRecipe tolerates a non-compiling namePattern', () => {
   const recipes = [{ id: 'x', match: { namePattern: '[' }, profile: {} }];
   assert.strictEqual(R.matchRecipe(recipes, { name: 'anything' }), null);
 });
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+test('bundled index.json passes validateIndex', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'index.json'), 'utf8'));
+  const entries = R.validateIndex(raw);
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(entries[0].id, 'repo');
+  assert.strictEqual(entries[0].file, 'repo.json');
+});
+
+test('bundled repo.json passes validateRecipe and keeps its fields', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'repo.json'), 'utf8'));
+  const out = R.validateRecipe(raw, '0.1.1');
+  assert.ok(out);
+  assert.strictEqual(out.profile.game, 'REPO');
+  assert.strictEqual(out.profile.thunderstoreCommunity, 'repo');
+  assert.strictEqual(out.profile.region, 'eu');
+});
