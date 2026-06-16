@@ -94,15 +94,21 @@ export default function Settings() {
   const settings = useAppStore((s) => s.settings);
   const saveSettings = useAppStore((s) => s.saveSettings);
   const dataDir = useAppStore((s) => s.dataDir);
+  const recipeStatus = useAppStore((s) => s.recipeStatus);
+  const refreshRecipes = useAppStore((s) => s.refreshRecipes);
+  const loadRecipeStatus = useAppStore((s) => s.loadRecipeStatus);
 
   const [draft, setDraft] = useState(settings || {});
   const [saved, setSaved] = useState(false);
   const [keyTest, setKeyTest] = useState(null); // { ok } | { error }
   const [keySaved, setKeySaved] = useState(false);
+  const [refreshingRecipes, setRefreshingRecipes] = useState(false);
 
   useEffect(() => {
     if (settings) setDraft(settings);
   }, [settings]);
+
+  useEffect(() => { loadRecipeStatus(); }, [loadRecipeStatus]);
 
   if (!settings) return <p className="text-neutral-500">Loading settings…</p>;
 
@@ -259,6 +265,32 @@ export default function Settings() {
         </div>
       </section>
 
+
+      {/* Crossplay recipes */}
+      <section className="mb-6">
+        <h2 className="mb-1 text-sm font-semibold text-neutral-100">Crossplay recipes</h2>
+        <p className="mb-3 text-xs text-neutral-500">
+          Per-game connector configs fetched from GitHub so they can be updated without an app update.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            disabled={refreshingRecipes}
+            onClick={async () => {
+              setRefreshingRecipes(true);
+              try { await refreshRecipes(); } finally { setRefreshingRecipes(false); }
+            }}
+            className="rounded bg-neutral-700 px-3 py-1.5 text-sm text-neutral-100 hover:bg-surface-hover disabled:opacity-50"
+          >
+            {refreshingRecipes ? 'Refreshing…' : 'Refresh recipes'}
+          </button>
+          <span className="text-xs text-neutral-500">
+            {recipeStatus
+              ? `${recipeStatus.count} recipe${recipeStatus.count === 1 ? '' : 's'}` +
+                (recipeStatus.fetchedAt ? ` · updated ${new Date(recipeStatus.fetchedAt).toLocaleString()}` : ' · bundled')
+              : 'Not loaded'}
+          </span>
+        </div>
+      </section>
 
       {/* General */}
       <section className="mb-6 space-y-3">

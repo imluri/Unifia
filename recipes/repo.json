@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "repo",
+  "notes": "Mirror of the bundled REPO profile; exercises the pipeline with no behavior change.",
+  "profile": {
+    "game": "REPO",
+    "netcode": "pun2",
+    "hookStrategy": "manual",
+    "autoDelaySeconds": 3,
+    "supportsNativeLobby": false,
+    "connectionMode": "cloud-region",
+    "region": "eu",
+    "module": "bepinex_mono",
+    "thunderstoreCommunity": "repo"
+  }
+}
