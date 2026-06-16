@@ -59,7 +59,9 @@ namespace Unifia.Pun
                 var postfix = new HarmonyMethod(
                     typeof(HarmonyHooks).GetMethod(nameof(InjectSettings), BindingFlags.NonPublic | BindingFlags.Static));
                 _harmony.Patch(method, postfix: postfix);
-                UnifiaPlugin.Log.LogInfo($"Hooked {typeName}.{methodName} for inject-settings.");
+                UnifiaPlugin.Log.LogInfo(
+                    $"Hooked {typeName}.{methodName} for inject-settings — will inject " +
+                    $"AppId={Mask(_appId)}, Voice={Mask(_voiceAppId)}, Version='{_appVersion}'.");
             }
             catch (Exception ex)
             {
@@ -80,15 +82,36 @@ namespace Unifia.Pun
             try
             {
                 var app = PhotonNetwork.PhotonServerSettings.AppSettings;
-                if (!string.IsNullOrEmpty(_appId)) app.AppIdRealtime = _appId;
+                UnifiaPlugin.Log.LogInfo($"inject-settings fired — game's AppId was {Mask(app.AppIdRealtime)}.");
+
+                if (string.IsNullOrEmpty(_appId))
+                {
+                    UnifiaPlugin.Log.LogWarning(
+                        "inject-settings: photonAppId is EMPTY — NOTHING injected. Crossplay is OFF; " +
+                        "the game keeps its own Photon app. Set a Photon AppId in Unifia → Settings → " +
+                        "Crossplay (or fill the recipe's photonAppId), then relaunch.");
+                    return;
+                }
+
+                app.AppIdRealtime = _appId;
                 if (!string.IsNullOrEmpty(_voiceAppId)) app.AppIdVoice = _voiceAppId;
                 if (!string.IsNullOrEmpty(_appVersion)) app.AppVersion = _appVersion;
-                UnifiaPlugin.Log.LogInfo("Unifia injected shared Photon AppId/version.");
+                UnifiaPlugin.Log.LogInfo(
+                    $"inject-settings APPLIED → AppIdRealtime={Mask(_appId)}, " +
+                    $"AppIdVoice={Mask(_voiceAppId)}, AppVersion='{_appVersion}'. " +
+                    "Both copies on this app+version will meet in the in-game server browser.");
             }
             catch (Exception ex)
             {
                 UnifiaPlugin.Log.LogError($"Inject failed: {ex.Message}");
             }
+        }
+
+        // Short, log-safe rendering of an AppId (it's a GUID-ish key).
+        private static string Mask(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "<empty>";
+            return s.Length <= 10 ? s : s.Substring(0, 8) + "…";
         }
     }
 }

@@ -29,6 +29,11 @@ namespace Unifia.Pun
             catch { OriginalAppId = ""; }
 
             var profile = UnifiaConfig.LoadProfile();
+            Log.LogInfo(
+                $"Profile loaded: netcode={profile.netcode}, strategy={profile.hookStrategy}, " +
+                $"hook={profile.connectHookType}.{profile.connectHookMethod}, " +
+                $"photonAppId={(string.IsNullOrEmpty(profile.photonAppId) ? "<EMPTY>" : "set")}, " +
+                $"version='{profile.photonAppVersion}'. Game's own AppId={(string.IsNullOrEmpty(OriginalAppId) ? "<none>" : "set")}.");
             if (profile.netcode != "pun2" && profile.netcode != "pun1")
             {
                 Log.LogWarning($"Profile netcode '{profile.netcode}' is not PUN — staying idle.");
