@@ -89,3 +89,18 @@ test('bundled repo.json passes validateRecipe and keeps its fields', () => {
   assert.strictEqual(out.profile.thunderstoreCommunity, 'repo');
   assert.strictEqual(out.profile.region, 'eu');
 });
+
+test('validateRecipe keeps a string photonAppVersion and drops a non-string one', () => {
+  const ok = R.validateRecipe(
+    { schemaVersion: 1, id: 'x', profile: { photonAppVersion: 'unifia-repo-cp1' } }, '0.1.1');
+  assert.strictEqual(ok.profile.photonAppVersion, 'unifia-repo-cp1');
+  const bad = R.validateRecipe(
+    { schemaVersion: 1, id: 'x', profile: { photonAppVersion: 42 } }, '0.1.1');
+  assert.strictEqual('photonAppVersion' in bad.profile, false);
+});
+
+test('bundled repo.json carries photonAppVersion', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'repo.json'), 'utf8'));
+  const out = R.validateRecipe(raw, '0.1.1');
+  assert.strictEqual(out.profile.photonAppVersion, 'unifia-repo-cp1');
+});
