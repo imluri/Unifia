@@ -117,6 +117,7 @@ function registerIpc() {
   handle('unifia:addManualGame', (game) => gameScanner.addManualGame(game));
   handle('unifia:removeGame', (gameId) => gameScanner.removeGame(gameId));
   handle('unifia:updateGamePath', (gameId, newPath) => gameScanner.updateGamePath(gameId, newPath));
+  handle('unifia:renameGame', (gameId, displayName) => gameScanner.renameGame(gameId, displayName));
 
   // --- Launch / patch ---
   handle('unifia:launchGame', async (gameId, opts) => {

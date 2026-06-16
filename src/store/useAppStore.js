@@ -160,6 +160,11 @@ export const useAppStore = create((set, get) => ({
     set((s) => ({ games: s.games.map((g) => (g.id === gameId ? updated : g)) }));
     return updated;
   },
+  async renameGame(gameId, displayName) {
+    const updated = await api.renameGame(gameId, displayName);
+    set((s) => ({ games: s.games.map((g) => (g.id === gameId ? updated : g)) }));
+    return updated;
+  },
 
   // --- Modules ---
   async refreshModules() {

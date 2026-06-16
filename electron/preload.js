@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('unifia', {
   addManualGame: (game) => invoke('unifia:addManualGame', game),
   removeGame: (gameId) => invoke('unifia:removeGame', gameId),
   updateGamePath: (gameId, newPath) => invoke('unifia:updateGamePath', gameId, newPath),
+  renameGame: (gameId, displayName) => invoke('unifia:renameGame', gameId, displayName),
 
   // Launch / patch
   launchGame: (gameId, opts) => invoke('unifia:launchGame', gameId, opts),
