@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Photon.Pun;
+using Photon.Realtime;
 
 namespace Unifia.Pun
 {
@@ -67,6 +68,56 @@ namespace Unifia.Pun
             {
                 UnifiaPlugin.Log.LogError($"Failed to patch {typeName}.{methodName}: {ex.Message}");
             }
+        }
+
+        // Neutralize the game's Steam-auth-ticket method (recipe `disableSteamAuth`).
+        // On a cracked copy the Steam emulator can't produce an auth ticket, so the
+        // game's connect coroutine hangs in GetAuthSessionTicket before it ever
+        // reaches ConnectUsingSettings. REPO uses AuthType=None (Photon doesn't
+        // validate the ticket), so skipping it is safe — we set clean AuthValues and
+        // let the connect proceed. Patches SteamManager.SendSteamAuthTicket.
+        public static void ApplyDisableSteamAuth(string typeName, string methodName)
+        {
+            var t = string.IsNullOrEmpty(typeName) ? "SteamManager" : typeName;
+            var m = string.IsNullOrEmpty(methodName) ? "SendSteamAuthTicket" : methodName;
+
+            var type = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => SafeGetType(a, t)).FirstOrDefault(x => x != null);
+            var method = type?.GetMethod(m,
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+            if (method == null)
+            {
+                UnifiaPlugin.Log.LogWarning($"disableSteamAuth: '{t}.{m}' not found — Steam auth left as-is.");
+                return;
+            }
+            try
+            {
+                _harmony = _harmony ?? new Harmony(UnifiaPlugin.Guid);
+                var prefix = new HarmonyMethod(
+                    typeof(HarmonyHooks).GetMethod(nameof(SkipSteamAuth), BindingFlags.NonPublic | BindingFlags.Static));
+                _harmony.Patch(method, prefix: prefix);
+                UnifiaPlugin.Log.LogInfo($"disableSteamAuth: patched {t}.{m} — connect won't block on the Steam ticket.");
+            }
+            catch (Exception ex)
+            {
+                UnifiaPlugin.Log.LogError($"disableSteamAuth: failed to patch {t}.{m}: {ex.Message}");
+            }
+        }
+
+        // Prefix replacement for SendSteamAuthTicket: set clean AuthValues (no ticket,
+        // AuthType=None) and skip the original (which would block fetching the ticket).
+        private static bool SkipSteamAuth()
+        {
+            try
+            {
+                PhotonNetwork.AuthValues = new AuthenticationValues { AuthType = CustomAuthenticationType.None };
+                UnifiaPlugin.Log.LogInfo("Steam auth neutralized — connecting without a Steam ticket.");
+            }
+            catch (Exception ex)
+            {
+                UnifiaPlugin.Log.LogError($"SkipSteamAuth failed: {ex.Message}");
+            }
+            return false; // skip the original SendSteamAuthTicket
         }
 
         private static Type SafeGetType(Assembly asm, string typeName)

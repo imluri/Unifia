@@ -27,6 +27,10 @@ namespace Unifia.Pun
                     _profile.connectHookType, _profile.connectHookMethod,
                     _profile.photonAppId, _profile.photonVoiceAppId, _profile.photonAppVersion);
             }
+            if (_profile.disableSteamAuth)
+            {
+                HarmonyHooks.ApplyDisableSteamAuth(null, null);
+            }
             WriteStatus();
         }
 

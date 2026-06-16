@@ -40,6 +40,7 @@ namespace Unifia.Pun
         public string photonAppVersion = "";    // shared Photon AppVersion to pin for crossplay
         public string photonAppId = "";          // shared Photon Realtime AppId to inject
         public string photonVoiceAppId = "";      // shared Photon Voice AppId to inject
+        public bool disableSteamAuth = false;     // neutralize the game's Steam auth ticket (hangs on cracked copies; unvalidated anyway)
 
         public static UnifiaProfile Default()
         {
