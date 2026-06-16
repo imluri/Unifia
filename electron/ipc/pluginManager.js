@@ -92,4 +92,25 @@ function uninstallPlugin(gameId) {
   return getPluginStatus(gameId);
 }
 
-module.exports = { getPluginStatus, installPlugin, uninstallPlugin, resolvePluginDll };
+// Redeploy the plugin if it's installed but out of date vs the built DLL. Keeps
+// the in-game connector in sync after a rebuild (dev) or an app update, so a
+// stale Unifia.Pun.dll never silently runs old behavior. Non-fatal; returns a
+// small status. Does nothing if the plugin isn't installed for this game.
+function syncPlugin(gameId) {
+  const game = findGame(gameId);
+  const dest = pluginPath(game.installPath);
+  if (!fs.existsSync(dest)) return { gameId, synced: false, reason: 'not installed' };
+  const src = resolvePluginDll();
+  if (!src) return { gameId, synced: false, reason: 'no built dll' };
+  try {
+    if (fs.readFileSync(src).equals(fs.readFileSync(dest))) {
+      return { gameId, synced: false, reason: 'up to date' };
+    }
+    fs.copyFileSync(src, dest);
+    return { gameId, synced: true };
+  } catch (err) {
+    return { gameId, synced: false, reason: err.message };
+  }
+}
+
+module.exports = { getPluginStatus, installPlugin, uninstallPlugin, resolvePluginDll, syncPlugin };

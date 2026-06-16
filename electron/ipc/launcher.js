@@ -6,6 +6,7 @@ const { moduleDir } = require('../paths');
 const patcher = require('./patcher');
 const profiles = require('./profiles');
 const modManager = require('./modManager');
+const pluginManager = require('./pluginManager');
 
 // Tracks the currently spawned game process so we can detect "already running"
 // and kill on request. Keyed by gameId.
@@ -87,6 +88,13 @@ function launchGame(gameId, { args = [] } = {}) {
   } catch {
     /* mod will use its built-in defaults */
   }
+
+  // Keep the in-game connector DLL in sync with the built one, so an update is
+  // picked up automatically (no manual reinstall). Non-fatal.
+  try {
+    const r = pluginManager.syncPlugin(game.id);
+    if (r.synced) console.log(`[unifia] connector DLL updated for ${game.id}`);
+  } catch { /* non-fatal */ }
   const profile = (store.get('gameProfiles') || {})[game.id];
   if (profile && profile.netConfig) {
     try {
