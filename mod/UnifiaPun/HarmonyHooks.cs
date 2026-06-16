@@ -84,22 +84,26 @@ namespace Unifia.Pun
                 var app = PhotonNetwork.PhotonServerSettings.AppSettings;
                 UnifiaPlugin.Log.LogInfo($"inject-settings fired — game's AppId was {Mask(app.AppIdRealtime)}.");
 
+                // Set each field independently — pin the version even if no AppId is
+                // configured (e.g. a cracked copy already has the right AppId via ini).
+                if (!string.IsNullOrEmpty(_appId)) app.AppIdRealtime = _appId;
+                if (!string.IsNullOrEmpty(_voiceAppId)) app.AppIdVoice = _voiceAppId;
+                if (!string.IsNullOrEmpty(_appVersion)) app.AppVersion = _appVersion;
+
                 if (string.IsNullOrEmpty(_appId))
                 {
                     UnifiaPlugin.Log.LogWarning(
-                        "inject-settings: photonAppId is EMPTY — NOTHING injected. Crossplay is OFF; " +
-                        "the game keeps its own Photon app. Set a Photon AppId in Unifia → Settings → " +
-                        "Crossplay (or fill the recipe's photonAppId), then relaunch.");
-                    return;
+                        "inject-settings: photonAppId is EMPTY — AppId NOT overridden (version still pinned). " +
+                        "Crossplay needs a shared AppId: set one in the Multiplayer invite, Unifia → Settings → " +
+                        "Crossplay, or the recipe, then relaunch.");
                 }
-
-                app.AppIdRealtime = _appId;
-                if (!string.IsNullOrEmpty(_voiceAppId)) app.AppIdVoice = _voiceAppId;
-                if (!string.IsNullOrEmpty(_appVersion)) app.AppVersion = _appVersion;
-                UnifiaPlugin.Log.LogInfo(
-                    $"inject-settings APPLIED → AppIdRealtime={Mask(_appId)}, " +
-                    $"AppIdVoice={Mask(_voiceAppId)}, AppVersion='{_appVersion}'. " +
-                    "Both copies on this app+version will meet in the in-game server browser.");
+                else
+                {
+                    UnifiaPlugin.Log.LogInfo(
+                        $"inject-settings APPLIED → AppIdRealtime={Mask(_appId)}, " +
+                        $"AppIdVoice={Mask(_voiceAppId)}, AppVersion='{_appVersion}'. " +
+                        "Both copies on this app+version will meet in the in-game server browser.");
+                }
             }
             catch (Exception ex)
             {
