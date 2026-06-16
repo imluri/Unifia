@@ -129,6 +129,27 @@ test('bundled repo recipe, assembled with its index entry, matches REPO', () => 
   const r = R.assembleRecipe(entry, raw, '0.1.1');
   const hit = R.matchRecipe([r], { name: 'REPO' });
   assert.ok(hit, 'bundled REPO recipe should match a REPO game');
-  assert.strictEqual(hit.profile.hookStrategy, 'manual');
+  assert.strictEqual(hit.profile.hookStrategy, 'inject-settings');
+  assert.strictEqual(hit.profile.photonAppVersion, 'unifia-repo-cp1');
+});
+
+test('validateRecipe keeps photonAppId/photonVoiceAppId strings and drops non-strings', () => {
+  const ok = R.validateRecipe({ schemaVersion: 1, id: 'x', profile: {
+    photonAppId: 'abc-123', photonVoiceAppId: 'def-456' } }, '0.1.1');
+  assert.strictEqual(ok.profile.photonAppId, 'abc-123');
+  assert.strictEqual(ok.profile.photonVoiceAppId, 'def-456');
+  const bad = R.validateRecipe({ schemaVersion: 1, id: 'x', profile: { photonAppId: 7 } }, '0.1.1');
+  assert.strictEqual('photonAppId' in bad.profile, false);
+});
+
+test('bundled REPO recipe is inject-settings with the DataDirector hook', () => {
+  const index = R.validateIndex(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'index.json'), 'utf8')));
+  const entry = index.find((e) => e.id === 'repo');
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'recipes', 'repo.json'), 'utf8'));
+  const r = R.assembleRecipe(entry, raw, '0.1.1');
+  const hit = R.matchRecipe([r], { name: 'REPO' });
+  assert.strictEqual(hit.profile.hookStrategy, 'inject-settings');
+  assert.strictEqual(hit.profile.connectHookType, 'DataDirector');
+  assert.strictEqual(hit.profile.connectHookMethod, 'PhotonSetAppId');
   assert.strictEqual(hit.profile.photonAppVersion, 'unifia-repo-cp1');
 });

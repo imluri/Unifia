@@ -2,31 +2,37 @@ using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using Photon.Pun;
 
 namespace Unifia.Pun
 {
-    // Optional support for the "reconnect-on-load" strategy: for games whose own
-    // networking-connect call must be wrapped, patch the method named in the
-    // profile (connectHookType / connectHookMethod) so Unifia activates right
-    // after the game tries to connect.
+    // inject-settings: postfix the game's own Photon-setup method (named in the
+    // recipe, e.g. DataDirector.PhotonSetAppId) and overwrite AppSettings with the
+    // shared community AppId/version so the game connects natively to the shared
+    // Photon app and crossplay shows up in the game's own server browser.
     //
-    // Reflection-based on purpose — it needs no compile-time reference to the
-    // game, so the same plugin binary works across titles; the target is data.
+    // Reflection-based on purpose — no compile-time reference to the game; the
+    // target method is recipe data.
     internal static class HarmonyHooks
     {
-        private static PunController _controller;
         private static Harmony _harmony;
+        private static string _appId;
+        private static string _voiceAppId;
+        private static string _appVersion;
 
-        public static void Apply(PunController controller, string typeName, string methodName)
+        public static void ApplyInject(string typeName, string methodName,
+            string appId, string voiceAppId, string appVersion)
         {
             if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(methodName))
             {
                 UnifiaPlugin.Log.LogWarning(
-                    "reconnect-on-load needs connectHookType + connectHookMethod in the profile.");
+                    "inject-settings needs connectHookType + connectHookMethod in the profile.");
                 return;
             }
 
-            _controller = controller;
+            _appId = appId;
+            _voiceAppId = voiceAppId;
+            _appVersion = appVersion;
 
             var type = AppDomain.CurrentDomain
                 .GetAssemblies()
@@ -51,9 +57,9 @@ namespace Unifia.Pun
             {
                 _harmony = new Harmony(UnifiaPlugin.Guid);
                 var postfix = new HarmonyMethod(
-                    typeof(HarmonyHooks).GetMethod(nameof(AfterConnect), BindingFlags.NonPublic | BindingFlags.Static));
+                    typeof(HarmonyHooks).GetMethod(nameof(InjectSettings), BindingFlags.NonPublic | BindingFlags.Static));
                 _harmony.Patch(method, postfix: postfix);
-                UnifiaPlugin.Log.LogInfo($"Hooked {typeName}.{methodName} for reconnect-on-load.");
+                UnifiaPlugin.Log.LogInfo($"Hooked {typeName}.{methodName} for inject-settings.");
             }
             catch (Exception ex)
             {
@@ -63,20 +69,26 @@ namespace Unifia.Pun
 
         private static Type SafeGetType(Assembly asm, string typeName)
         {
-            try
-            {
-                return asm.GetType(typeName, false);
-            }
-            catch
-            {
-                return null;
-            }
+            try { return asm.GetType(typeName, false); }
+            catch { return null; }
         }
 
-        // Runs after the game's own connect call; Activate() guards re-entry.
-        private static void AfterConnect()
+        // Runs after the game's Photon-setup method; overwrite the AppId/version so
+        // both copies share one Photon virtual app.
+        private static void InjectSettings()
         {
-            _controller?.Activate();
+            try
+            {
+                var app = PhotonNetwork.PhotonServerSettings.AppSettings;
+                if (!string.IsNullOrEmpty(_appId)) app.AppIdRealtime = _appId;
+                if (!string.IsNullOrEmpty(_voiceAppId)) app.AppIdVoice = _voiceAppId;
+                if (!string.IsNullOrEmpty(_appVersion)) app.AppVersion = _appVersion;
+                UnifiaPlugin.Log.LogInfo("Unifia injected shared Photon AppId/version.");
+            }
+            catch (Exception ex)
+            {
+                UnifiaPlugin.Log.LogError($"Inject failed: {ex.Message}");
+            }
         }
     }
 }

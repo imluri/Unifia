@@ -7,70 +7,35 @@ using UnityEngine;
 
 namespace Unifia.Pun
 {
-    // Drives the actual PUN2 repoint. Lives on a DontDestroyOnLoad GameObject so
-    // it survives scene changes. MonoBehaviourPunCallbacks auto-registers the
-    // Photon callbacks while enabled.
-    //
-    // Flow when activated:
-    //   1. Disconnect from Photon Cloud (if connected).
-    //   2. Override AppSettings → host's self-hosted server, name server off.
-    //   3. ConnectUsingSettings() → OnConnectedToMaster → JoinOrCreateRoom(code).
-    //
-    // Activation timing is the one genuinely game-specific bit. Two strategies
-    // are built in (manual hotkey, auto-after-delay). "reconnect-on-load" is left
-    // as a Harmony hook point for games whose own connect flow must be wrapped.
+    // inject-settings connector: registers a Harmony postfix that overwrites the
+    // Photon AppId/version at the game's native connect, then stays out of the way.
+    // The player joins via the game's own server browser. No disconnect, no hotkey.
+    // Still a MonoBehaviourPunCallbacks so it can report room status (read by the
+    // launcher's Multiplayer tab) once the player joins a room normally.
     public class PunController : MonoBehaviourPunCallbacks
     {
-        private const KeyCode Hotkey = KeyCode.F9;
-
-        private const float ReconnectBackoff = 2f;
-        private const int MaxReconnects = 5;
-
-        private NetConfig _net;
         private UnifiaProfile _profile;
-        private bool _activating;
-        private float _autoTimer = -1f;
 
-        // Once activated we stay "engaged" for the session and re-assert our
-        // settings if anything knocks us off, so the host's AppId/room win.
-        private bool _engaged;
-        private bool _selfDisconnect; // guards the pre-connect Disconnect() below
-        private float _reconnectTimer = -1f;
-        private int _reconnects;
-
-        public void Init(NetConfig net, UnifiaProfile profile)
+        public void Init(UnifiaProfile profile)
         {
-            _net = net;
             _profile = profile ?? UnifiaProfile.Default();
+            UnifiaPlugin.Log.LogInfo($"Unifia ready — strategy={_profile.hookStrategy}.");
 
-            UnifiaPlugin.Log.LogInfo(
-                $"Unifia ready — strategy={_profile.hookStrategy}, room={_net.RoomCode}, " +
-                $"server={_net.ServerIP}:{_net.Port}. Press {Hotkey} to (re)join.");
-
-            if (_profile.hookStrategy == "auto-on-load")
+            if (_profile.hookStrategy == "inject-settings")
             {
-                _autoTimer = Mathf.Max(0.5f, _profile.autoDelaySeconds);
+                HarmonyHooks.ApplyInject(
+                    _profile.connectHookType, _profile.connectHookMethod,
+                    _profile.photonAppId, _profile.photonVoiceAppId, _profile.photonAppVersion);
             }
-            else if (_profile.hookStrategy == "reconnect-on-load")
-            {
-                // Wrap the game's own connect call so we activate right after it.
-                HarmonyHooks.Apply(this, _profile.connectHookType, _profile.connectHookMethod);
-            }
-            // "manual" waits for the hotkey.
-            WriteStatus(); // "loaded" appears even before joining
+            WriteStatus();
         }
 
         // --- Edition status file (read by the launcher's Multiplayer tab) --------
 
-        private static string StatusPath()
-        {
-            return Path.Combine(Paths.ConfigPath, "unifia_status.json");
-        }
+        private static string StatusPath() => Path.Combine(Paths.ConfigPath, "unifia_status.json");
 
-        private static string JsonStr(string s)
-        {
-            return "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-        }
+        private static string JsonStr(string s) =>
+            "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
         private static string PlayerJson(Player p, string originalAppId)
         {
@@ -82,10 +47,12 @@ namespace Unifia.Pun
         {
             try
             {
+                string room = PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null
+                    ? PhotonNetwork.CurrentRoom.Name : "";
                 var sb = new System.Text.StringBuilder();
                 sb.Append("{");
                 sb.Append("\"loaded\":true,");
-                sb.Append("\"room\":").Append(JsonStr(_net != null ? _net.RoomCode : "")).Append(",");
+                sb.Append("\"room\":").Append(JsonStr(room)).Append(",");
                 sb.Append("\"joined\":").Append(PhotonNetwork.InRoom ? "true" : "false").Append(",");
                 sb.Append("\"self\":").Append(PlayerJson(PhotonNetwork.LocalPlayer, UnifiaPlugin.OriginalAppId)).Append(",");
                 sb.Append("\"players\":[");
@@ -106,150 +73,23 @@ namespace Unifia.Pun
             catch (System.Exception e) { UnifiaPlugin.Log.LogWarning($"status write failed: {e.Message}"); }
         }
 
-        private void Update()
-        {
-            if (_autoTimer > 0f)
-            {
-                _autoTimer -= Time.deltaTime;
-                if (_autoTimer <= 0f) Activate();
-            }
-            if (_reconnectTimer > 0f)
-            {
-                _reconnectTimer -= Time.deltaTime;
-                if (_reconnectTimer <= 0f)
-                {
-                    _reconnectTimer = -1f;
-                    Activate(); // re-asserts AppId + room and reconnects
-                }
-            }
-            if (Input.GetKeyDown(Hotkey)) Activate();
-        }
-
-        // Repoint PUN at the host's server and connect. Idempotent while in flight.
-        public void Activate()
-        {
-            if (_activating) return;
-            if (_net == null || !_net.HasRoom)
-            {
-                UnifiaPlugin.Log.LogWarning("No room descriptor — nothing to join.");
-                return;
-            }
-
-            _activating = true;
-            _engaged = true;
-            var mode = string.IsNullOrEmpty(_net.ConnectionMode) ? "cloud-region" : _net.ConnectionMode;
-            UnifiaPlugin.Log.LogInfo($"Activating Unifia ({mode}) → room '{_net.RoomCode}'…");
-
-            if (PhotonNetwork.IsConnected)
-            {
-                _selfDisconnect = true; // our own teardown — don't treat as a knock-off
-                PhotonNetwork.Disconnect();
-            }
-
-            var app = PhotonNetwork.PhotonServerSettings.AppSettings;
-            // Only swap the AppId for a real one — never clobber the game's own
-            // Photon Cloud AppId with the self-hosted placeholder in cloud mode.
-            bool overrideAppId = !string.IsNullOrEmpty(_net.AppId) && _net.AppId != "unifia-local";
-
-            if (mode == "self-hosted")
-            {
-                // Point straight at the host's self-hosted Photon server.
-                app.UseNameServer = false;
-                app.Server = _net.ServerIP;
-                app.Port = _net.Port;
-                app.FixedRegion = "";
-                if (!string.IsNullOrEmpty(_net.AppId)) app.AppIdRealtime = _net.AppId;
-            }
-            else
-            {
-                // Stay on Photon Cloud. Match only the AppId (the "key") — the game
-                // exposes its own Photon region selector, so leave FixedRegion as the
-                // player set it and never pin a region from Unifia.
-                app.UseNameServer = true;
-                app.Server = "";
-                if (overrideAppId) app.AppIdRealtime = _net.AppId;
-            }
-
-            // Some games also use Photon Voice (a second AppId), e.g. REPO.
-            if (!string.IsNullOrEmpty(_net.VoiceAppId)) app.AppIdVoice = _net.VoiceAppId;
-
-            if (!string.IsNullOrEmpty(_net.Username)) PhotonNetwork.NickName = _net.Username;
-            // Pin a shared Photon version so different game builds land in one virtual
-            // app. The recipe constant (photonAppVersion) wins; else the per-session
-            // invite version. Set BOTH AppSettings.AppVersion and GameVersion so the
-            // effective version is identical across copies regardless of how PUN derives it.
-            string pinnedVersion = !string.IsNullOrEmpty(_profile.photonAppVersion)
-                ? _profile.photonAppVersion
-                : _net.Version;
-            if (!string.IsNullOrEmpty(pinnedVersion))
-            {
-                app.AppVersion = pinnedVersion;
-                PhotonNetwork.GameVersion = pinnedVersion;
-            }
-
-            PhotonNetwork.ConnectUsingSettings();
-        }
-
-        public override void OnConnectedToMaster()
-        {
-            if (!_activating) return;
-            UnifiaPlugin.Log.LogInfo($"Connected to host master. Joining room '{_net.RoomCode}'…");
-            // MaxPlayers 0 = use the game/server default.
-            PhotonNetwork.JoinOrCreateRoom(_net.RoomCode, new RoomOptions { MaxPlayers = 0 }, TypedLobby.Default);
-        }
-
         public override void OnJoinedRoom()
         {
-            _activating = false;
-            _reconnects = 0; // back in the room — reset the re-assert budget
-
-            // Self-report our original AppId (edition signal) + mark the nickname so
-            // the game's own player list shows who came in via Unifia.
+            // Tag ourselves so the game's player list shows who came in via Unifia.
             var props = new ExitGames.Client.Photon.Hashtable { { "unifia_appid", UnifiaPlugin.OriginalAppId } };
             PhotonNetwork.LocalPlayer.SetCustomProperties(props);
             if (!string.IsNullOrEmpty(PhotonNetwork.NickName) && !PhotonNetwork.NickName.EndsWith(" [U]"))
                 PhotonNetwork.NickName = PhotonNetwork.NickName + " [U]";
 
             int count = PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.PlayerCount : 0;
-            UnifiaPlugin.Log.LogInfo($"Joined Unifia room '{_net.RoomCode}' ({count} players).");
+            string name = PhotonNetwork.CurrentRoom != null ? PhotonNetwork.CurrentRoom.Name : "";
+            UnifiaPlugin.Log.LogInfo($"Joined room '{name}' ({count} players).");
             WriteStatus();
         }
 
+        public override void OnLeftRoom() { WriteStatus(); }
         public override void OnPlayerEnteredRoom(Player newPlayer) { WriteStatus(); }
         public override void OnPlayerLeftRoom(Player otherPlayer) { WriteStatus(); }
         public override void OnPlayerPropertiesUpdate(Player target, ExitGames.Client.Photon.Hashtable changedProps) { WriteStatus(); }
-
-        public override void OnJoinRoomFailed(short returnCode, string message)
-        {
-            _activating = false;
-            UnifiaPlugin.Log.LogWarning($"JoinRoom failed ({returnCode}): {message}");
-        }
-
-        public override void OnDisconnected(DisconnectCause cause)
-        {
-            _activating = false;
-
-            // Our own pre-connect teardown — expected, don't fight it.
-            if (_selfDisconnect)
-            {
-                _selfDisconnect = false;
-                UnifiaPlugin.Log.LogInfo($"Disconnected (self): {cause}");
-                return;
-            }
-
-            UnifiaPlugin.Log.LogInfo($"Disconnected: {cause}");
-            WriteStatus(); // reflect joined:false
-
-            // Something knocked us off (the game's own connect flow, another mod,
-            // a transient drop). Re-assert our AppId + room and rejoin so the
-            // host's settings win — capped so we never loop forever.
-            if (_engaged && _reconnects < MaxReconnects)
-            {
-                _reconnects++;
-                _reconnectTimer = ReconnectBackoff;
-                UnifiaPlugin.Log.LogInfo(
-                    $"Re-asserting Unifia (attempt {_reconnects}/{MaxReconnects}) in {ReconnectBackoff}s…");
-            }
-        }
     }
 }

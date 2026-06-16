@@ -74,4 +74,16 @@ function matchProfile(game) {
   return resolveProfile({ base, entryProfile: { game: game.name, module }, analyzerOverride, recipeProfile });
 }
 
-module.exports = { matchProfile, resolveProfile, loadRegistry };
+// Overlay a user's private Photon AppId (from settings) onto a resolved profile.
+// A non-empty override beats the recipe's community AppId; blank/absent keeps it.
+function applyAppIdOverride(profile, settings) {
+  const s = settings || {};
+  const out = { ...profile };
+  const id = (s.photonAppIdOverride || '').trim();
+  const voice = (s.photonVoiceAppIdOverride || '').trim();
+  if (id) out.photonAppId = id;
+  if (voice) out.photonVoiceAppId = voice;
+  return out;
+}
+
+module.exports = { matchProfile, resolveProfile, applyAppIdOverride, loadRegistry };
