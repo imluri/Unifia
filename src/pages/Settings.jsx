@@ -292,6 +292,30 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="mb-6">
+        <h2 className="mb-1 text-sm font-semibold text-neutral-100">Crossplay (advanced)</h2>
+        <p className="mb-3 text-xs text-neutral-500">
+          Unifia uses a shared community Photon app so you appear in the in-game server browser.
+          To run a closed group instead, paste your own Photon App IDs — they override the community app.
+        </p>
+        <label className="mb-2 block text-xs text-neutral-400">Private Photon AppId (Realtime)</label>
+        <input
+          type="text"
+          defaultValue={settings?.photonAppIdOverride || ''}
+          onBlur={(e) => saveSettings({ photonAppIdOverride: e.target.value.trim() })}
+          placeholder="Leave blank to use the community app"
+          className="mb-3 w-full rounded bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 ring-1 ring-border-default focus:outline-none focus:ring-accent/50"
+        />
+        <label className="mb-2 block text-xs text-neutral-400">Private Photon AppId (Voice)</label>
+        <input
+          type="text"
+          defaultValue={settings?.photonVoiceAppIdOverride || ''}
+          onBlur={(e) => saveSettings({ photonVoiceAppIdOverride: e.target.value.trim() })}
+          placeholder="Optional"
+          className="w-full rounded bg-neutral-800 px-3 py-1.5 text-sm text-neutral-100 ring-1 ring-border-default focus:outline-none focus:ring-accent/50"
+        />
+      </section>
+
       {/* General */}
       <section className="mb-6 space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">General</h2>
