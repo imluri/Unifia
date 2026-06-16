@@ -6,3 +6,6 @@ unifia_data/
 .DS_Store
 .env
 .vite/
+
+# Decompiled game sources (RE reference only — keep local, never commit)
+decompiled/
