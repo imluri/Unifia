@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "recipes": [
+    {
+      "id": "repo",
+      "match": { "namePattern": "^R\\.?E\\.?P\\.?O\\.?$|\\bREPO\\b" },
+      "file": "repo.json",
+      "version": 1,
+      "minUnifiaVersion": "0.1.0"
+    }
+  ]
+}
