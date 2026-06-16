@@ -33,3 +33,27 @@ test('resolveProfile with no recipe equals base<entry<analyzer (today behavior)'
   });
   assert.deepStrictEqual(out, { region: 'eu', game: 'X', netcode: 'pun2' });
 });
+
+const { applyAppIdOverride } = require('./profiles');
+
+test('applyAppIdOverride: settings override wins over recipe community AppId', () => {
+  const out = applyAppIdOverride(
+    { photonAppId: 'community', photonVoiceAppId: 'community-v', game: 'REPO' },
+    { photonAppIdOverride: 'mine', photonVoiceAppIdOverride: 'mine-v' });
+  assert.strictEqual(out.photonAppId, 'mine');
+  assert.strictEqual(out.photonVoiceAppId, 'mine-v');
+  assert.strictEqual(out.game, 'REPO');
+});
+
+test('applyAppIdOverride: blank/absent override keeps the recipe community AppId', () => {
+  const out = applyAppIdOverride(
+    { photonAppId: 'community', photonVoiceAppId: 'community-v' },
+    { photonAppIdOverride: '   ' });
+  assert.strictEqual(out.photonAppId, 'community');
+  assert.strictEqual(out.photonVoiceAppId, 'community-v');
+});
+
+test('applyAppIdOverride: no settings object is a no-op', () => {
+  const out = applyAppIdOverride({ photonAppId: 'community' }, undefined);
+  assert.strictEqual(out.photonAppId, 'community');
+});

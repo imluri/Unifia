@@ -81,7 +81,9 @@ function launchGame(gameId, { args = [] } = {}) {
   // so it joins the host's self-hosted Photon server. Both are non-fatal: the
   // game still launches if either write fails.
   try {
-    patcher.writeProfileConfig(game.installPath, profiles.matchProfile(game));
+    patcher.writeProfileConfig(
+      game.installPath,
+      profiles.applyAppIdOverride(profiles.matchProfile(game), store.get('settings')));
   } catch {
     /* mod will use its built-in defaults */
   }
