@@ -1,6 +1,6 @@
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { cloneKey, findCloneIds } = require('./clones.js');
+import { test } from 'node:test';
+import assert from 'node:assert';
+import { cloneKey, findCloneIds } from './clones.mjs';
 
 test('cloneKey normalizes name and exe basename', () => {
   assert.strictEqual(
