@@ -37,6 +37,7 @@ namespace Unifia.Pun
         public bool supportsNativeLobby = false;
         public string connectHookType = "";    // for reconnect-on-load: type to patch
         public string connectHookMethod = "";  // for reconnect-on-load: method to patch
+        public string photonAppVersion = "";    // shared Photon AppVersion to pin for crossplay
 
         public static UnifiaProfile Default()
         {
