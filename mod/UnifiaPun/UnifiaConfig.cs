@@ -38,6 +38,8 @@ namespace Unifia.Pun
         public string connectHookType = "";    // for reconnect-on-load: type to patch
         public string connectHookMethod = "";  // for reconnect-on-load: method to patch
         public string photonAppVersion = "";    // shared Photon AppVersion to pin for crossplay
+        public string photonAppId = "";          // shared Photon Realtime AppId to inject
+        public string photonVoiceAppId = "";      // shared Photon Voice AppId to inject
 
         public static UnifiaProfile Default()
         {
