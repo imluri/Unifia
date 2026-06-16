@@ -37,6 +37,17 @@ function StoreBadge({ store }) {
   );
 }
 
+function CloneBadge() {
+  return (
+    <span
+      className="inline-flex items-center rounded bg-neutral-800 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 ring-1 ring-amber-500/30"
+      title="Another install of this game exists in your library"
+    >
+      clone
+    </span>
+  );
+}
+
 // Detected game engine (Unity/Unreal/Godot/…). Hidden when undetectable.
 function EngineBadge({ game }) {
   if (!game.engine || game.engine === 'unknown' || !game.engineName) return null;
@@ -47,7 +58,8 @@ function EngineBadge({ game }) {
   );
 }
 
-export default function GameCard({ game, profile, onOpen, index = 0, view = 'list' }) {
+export default function GameCard({ game, profile, onOpen, index = 0, view = 'list', isClone = false }) {
+  const label = game.displayName || game.name;
   const art = useAppStore((s) => s.art[game.id]);
   const fetchArt = useAppStore((s) => s.fetchArt);
   const [loadingArt, setLoadingArt] = useState(art === undefined);
@@ -93,12 +105,18 @@ export default function GameCard({ game, profile, onOpen, index = 0, view = 'lis
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-neutral-100" title={game.name}>{game.name}</h3>
+            <h3 className="truncate text-sm font-semibold text-neutral-100" title={game.name}>{label}</h3>
             <StoreBadge store={game.store} />
+            {isClone && <CloneBadge />}
           </div>
           <p className="truncate text-xs text-neutral-500" title={game.installPath}>
             {game.installPath}
           </p>
+          {isClone && game.store === 'steam' && (
+            <p className="truncate text-[11px] text-amber-300/70">
+              Another install exists — Steam may launch the wrong copy.
+            </p>
+          )}
         </div>
 
         <div className="hidden shrink-0 items-center gap-2 md:flex">
@@ -140,9 +158,10 @@ export default function GameCard({ game, profile, onOpen, index = 0, view = 'lis
         <div className="mb-2 flex items-start gap-3">
           <GameIcon src={icon} onError={() => setIconOk(false)} />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-base font-semibold text-neutral-100" title={game.name}>{game.name}</h3>
-            <span className="mt-0.5 inline-block">
+            <h3 className="truncate text-base font-semibold text-neutral-100" title={game.name}>{label}</h3>
+            <span className="mt-0.5 inline-flex items-center gap-1.5">
               <StoreBadge store={game.store} />
+              {isClone && <CloneBadge />}
             </span>
           </div>
         </div>
@@ -154,11 +173,16 @@ export default function GameCard({ game, profile, onOpen, index = 0, view = 'lis
         </div>
 
         <p
-          className={`mb-4 truncate text-xs ${banner ? 'text-neutral-300' : 'text-neutral-500'}`}
+          className={`mb-1 truncate text-xs ${banner ? 'text-neutral-300' : 'text-neutral-500'}`}
           title={game.installPath}
         >
           {game.installPath}
         </p>
+        {isClone && game.store === 'steam' && (
+          <p className="mb-4 truncate text-[11px] text-amber-300/80">
+            Another install exists — Steam may launch the wrong copy.
+          </p>
+        )}
 
       </div>
     </div>
