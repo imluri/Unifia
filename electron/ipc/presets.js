@@ -39,19 +39,6 @@ function updateFromActive(gameId, id) {
   return presetStore.list(gameId);
 }
 
-// Remove the active preset's deployed files from the game folder (without
-// touching staging) so switching presets doesn't leave the old set behind.
-function undeployActive(gameId, installPath) {
-  const mods = presetStore.activeMods(gameId);
-  for (const m of Object.values(mods)) {
-    for (const rel of m.deployedFiles || []) {
-      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
-    }
-    m.deployedFiles = [];
-  }
-  presetStore.setActiveMods(gameId, mods);
-}
-
 // Install any wanted mods that aren't staged at the right version in the active
 // preset. Returns the diff that was acted on.
 async function ensureInstalled(gameId, wanted, onProgress) {
@@ -70,7 +57,7 @@ async function switchTo(gameId, id, onProgress) {
   const game = findGame(gameId);
 
   // 1. Undeploy the currently-active preset so no stale files linger.
-  undeployActive(gameId, game.installPath);
+  presetStore.undeployActive(gameId, game.installPath);
 
   // 2. Activate the target.
   presetStore.setActive(gameId, id);
@@ -113,6 +100,9 @@ async function importPreset(gameId, code, name, onProgress) {
     throw new Error(`This code is for ${d.community}, not this game.`);
   }
 
+  // Clear the outgoing preset's deployed files before switching so the old set
+  // doesn't linger in the game folder.
+  presetStore.undeployActive(gameId, game.installPath);
   const id = presetStore.create(gameId, name || d.name || `Imported ${new Date().toLocaleDateString()}`, false);
   presetStore.setActive(gameId, id);
   const diff = await ensureInstalled(gameId, (d.mods || []).map((m) => ({ fullName: m.fullName, version: m.version })), onProgress);

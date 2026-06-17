@@ -103,6 +103,9 @@ function applyInvite(gameId, code) {
       version: d.version,
     },
   });
+  // Clear the outgoing preset's deployed files first, so the previous set (e.g.
+  // umamusume) doesn't linger in the game folder after we switch presets.
+  presetStore.undeployActive(gameId, game.installPath);
   // The invite's mod set becomes a new preset we switch to; the renderer's Sync
   // installs the diff into it. Name it from the code (falls back to room).
   const presetId = presetStore.create(gameId, d.presetName || `${d.name || 'Friend'} ${d.room}`, false);

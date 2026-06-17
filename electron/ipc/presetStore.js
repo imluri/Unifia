@@ -102,7 +102,22 @@ function activeName(gameId) {
   return p ? p.name : '';
 }
 
+// Remove the active preset's deployed files from the game folder (staging
+// untouched) so activating a different preset doesn't leave the old set behind.
+// Shared by every preset-activation path (switch, import, apply-invite).
+function undeployActive(gameId, installPath) {
+  const mods = activeMods(gameId);
+  for (const m of Object.values(mods)) {
+    for (const rel of m.deployedFiles || []) {
+      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
+    }
+    m.deployedFiles = [];
+  }
+  setActiveMods(gameId, mods);
+}
+
 module.exports = {
   genId, getEntry, getActiveId, activeMods, setActiveMods,
   list, create, rename, remove, setActive, updateFromActive, presetMods, activeName,
+  undeployActive,
 };
