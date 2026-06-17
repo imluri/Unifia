@@ -136,4 +136,10 @@ contextBridge.exposeInMainWorld('unifia', {
 
   // Event subscriptions (return unsubscribe fns)
   onDownloadProgress: (cb) => subscribe('download-progress', cb),
+
+  // Config editor
+  listConfigs: (gameId) => invoke('unifia:listConfigs', gameId),
+  readConfig: (gameId, filename) => invoke('unifia:readConfig', gameId, filename),
+  writeConfig: (gameId, filename, contents) => invoke('unifia:writeConfig', gameId, filename, contents),
+  inferConfigFile: (gameId, fullName) => invoke('unifia:inferConfigFile', gameId, fullName),
 });

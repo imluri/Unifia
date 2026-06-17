@@ -16,6 +16,7 @@ const presets = require('./ipc/presets');
 const analyzer = require('./ipc/analyzer');
 const updater = require('./ipc/updater');
 const recipeStore = require('./ipc/recipeStore');
+const configEditor = require('./ipc/configEditor');
 
 const isDev = process.env.NODE_ENV === 'development';
 let mainWindow = null;
@@ -181,6 +182,12 @@ function registerIpc() {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
     return true;
   });
+
+  // --- Config editor ---
+  handle('unifia:listConfigs', (gameId) => configEditor.listConfigs(gameId));
+  handle('unifia:readConfig', (gameId, filename) => configEditor.readConfig(gameId, filename));
+  handle('unifia:writeConfig', (gameId, filename, contents) => configEditor.writeConfig(gameId, filename, contents));
+  handle('unifia:inferConfigFile', (gameId, fullName) => configEditor.inferConfigFile(gameId, fullName));
 
   // --- Unifia connector plugin (per-game) ---
   handle('unifia:getPluginStatus', (gameId) => pluginManager.getPluginStatus(gameId));

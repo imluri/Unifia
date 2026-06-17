@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getDeploymentTargetLabel } from '../lib/modDeployment.js';
 import { useAppStore } from '../store/useAppStore.js';
+import ModDetailModal from './ModDetailModal.jsx';
 
 function fmtCount(n) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -25,6 +26,8 @@ export default function ModBrowseCard({ game, mod, readOnly = false }) {
     }
   }
 
+  const [showDetail, setShowDetail] = useState(false);
+
   return (
     <div className="flex gap-3 rounded bg-card p-3 ring-1 ring-border-subtle">
       {iconOk && mod.icon ? (
@@ -35,7 +38,9 @@ export default function ModBrowseCard({ game, mod, readOnly = false }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-neutral-100">{mod.name}</span>
+          <button onClick={() => setShowDetail(true)} className="truncate text-left text-sm font-semibold text-neutral-100 hover:underline">
+            {mod.name}
+          </button>
           <span className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400 ring-1 ring-border-default">
             {mod.hubLabel}
           </span>
@@ -91,6 +96,15 @@ export default function ModBrowseCard({ game, mod, readOnly = false }) {
           )}
         </div>
       </div>
+      <ModDetailModal
+        game={game}
+        mod={mod}
+        open={showDetail}
+        onClose={() => setShowDetail(false)}
+        onInstall={() => doInstall()}
+        installing={busy}
+        progress={progress}
+      />
     </div>
   );
 }

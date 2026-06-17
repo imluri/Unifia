@@ -1,7 +1,7 @@
 import React from 'react';
 import Icon from '../Icon.jsx';
 
-const SIZES = { sm: 'w-80', md: 'w-[34rem]' };
+const SIZES = { sm: 'w-80', md: 'w-[34rem]', lg: 'w-[52rem]' };
 
 // Shared modal: overlay + click-away + header (title/close) + scrollable body +
 // optional footer. Renders nothing when closed.

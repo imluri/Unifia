@@ -8,6 +8,7 @@ import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import MultiplayerTab from './MultiplayerTab.jsx';
 import PresetBar from '../components/PresetBar.jsx';
 import InviteModal from '../components/InviteModal.jsx';
+import ConfigEditorModal from '../components/ConfigEditorModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -44,6 +45,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [hub, setHub] = useState('');
   const [page, setPage] = useState(1);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [recipeMeta, setRecipeMeta] = useState(null);
@@ -219,6 +221,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
                 Change folder
               </Button>
             )}
+            <Button onClick={() => setConfigOpen(true)} title="Edit BepInEx config files">Config</Button>
             <Button className="ml-auto" icon="globe" onClick={() => setInviteOpen(true)} title="Generate or paste a multiplayer invite code">
               Invite
             </Button>
@@ -454,6 +457,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
       )}
 
       <InviteModal game={game} open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <ConfigEditorModal game={game} open={configOpen} onClose={() => setConfigOpen(false)} />
     </div>
   );
 }

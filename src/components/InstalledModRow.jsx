@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Icon from './Icon.jsx';
 import DownloadProgress from './DownloadProgress.jsx';
+import ConfigEditorModal from './ConfigEditorModal.jsx';
+import ModDetailModal from './ModDetailModal.jsx';
 import { getDeploymentTargetLabel } from '../lib/modDeployment.js';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -18,6 +20,8 @@ export default function InstalledModRow({ game, mod }) {
   const [updating, setUpdating] = useState(false);
   const [showDependents, setShowDependents] = useState(false);
   const [showConflicts, setShowConflicts] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const isInstalling = mod.version === 'installing';
 
@@ -85,9 +89,13 @@ export default function InstalledModRow({ game, mod }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-neutral-100" title={name}>
+            <button
+              onClick={() => setShowDetail(true)}
+              className="truncate text-sm font-semibold text-neutral-100 text-left hover:underline"
+              title={`View ${name}`}
+            >
               {name}
-            </span>
+            </button>
             {isInstalling ? (
               <span className="shrink-0 rounded bg-blue-900/60 px-1.5 py-0.5 text-[10px] text-blue-300">
                 Installing…
@@ -142,6 +150,13 @@ export default function InstalledModRow({ game, mod }) {
           </button>
         )}
         <button
+          onClick={() => setConfigOpen(true)}
+          title="Edit config"
+          className="flex shrink-0 items-center justify-center rounded bg-neutral-800 p-2 text-neutral-300 hover:bg-surface-hover"
+        >
+          <Icon name="settings" size={16} />
+        </button>
+        <button
           onClick={() => uninstallMod(game.id, mod.fullName)}
           title="Uninstall"
           disabled={isInstalling}
@@ -155,6 +170,18 @@ export default function InstalledModRow({ game, mod }) {
           <DownloadProgress progress={progress} />
         </div>
       )}
+      <ModDetailModal
+        game={game}
+        mod={pkg || { fullName: mod.fullName, name, owner: pkg?.owner, hubLabel: pkg?.hubLabel, icon }}
+        open={showDetail}
+        onClose={() => setShowDetail(false)}
+        onInstall={async () => {
+          await installMod(game.id, mod.fullName, mod.version);
+        }}
+        installing={updating}
+        progress={progress}
+      />
+      <ConfigEditorModal game={game} open={configOpen} onClose={() => setConfigOpen(false)} configFile={mod.fullName} />
       {showConflicts && modConflicts.length > 0 && (
         <div className="border-t border-border-subtle bg-red-900/20 px-3 py-2">
           <p className="mb-1 text-xs font-semibold text-red-300">Conflicts:</p>
