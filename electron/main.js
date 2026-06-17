@@ -160,6 +160,23 @@ function registerIpc() {
   handle('unifia:fetchModListForCommunity', (community, opts) =>
     modManager.fetchModListForCommunity(community, opts || {})
   );
+
+  // --- Cache Management ---
+  handle('unifia:validateCache', () => modManager.validateCache());
+  handle('unifia:getCacheStats', () => modManager.getCacheStats());
+  handle('unifia:getCacheRecord', (fullName, version) => modManager.getCacheRecord(fullName, version));
+  handle('unifia:listCachedVersions', (fullName) => modManager.listCachedVersions(fullName));
+  handle('unifia:migratePresetsToCache', async () => {
+    return new Promise((resolve) => {
+      modManager.migratePresetsToCache((progress) => {
+        emit('cache-migration-progress', progress);
+      }).then(resolve);
+    });
+  });
+  handle('unifia:deployModsWithValidation', (gameId, installPath) =>
+    modManager.deployModsWithValidation(gameId, installPath)
+  );
+
   handle('unifia:openExternal', (url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
     return true;

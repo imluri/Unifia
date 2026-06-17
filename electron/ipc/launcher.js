@@ -70,9 +70,9 @@ function launchGame(gameId, { args = [] } = {}) {
   // so we never install two overlapping loaders.
   const deployed = modManager.hasEnabledBepInExPack(game.id) ? null : deployModule(game);
 
-  // Deploy enabled Thunderstore mods into the game (staging → game folder).
+  // Deploy enabled Thunderstore mods into the game (cache → game folder) with validation.
   try {
-    modManager.deployMods(game.id, game.installPath);
+    modManager.deployModsWithValidation(game.id, game.installPath);
   } catch {
     /* a bad mod shouldn't block launch */
   }

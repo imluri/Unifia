@@ -70,6 +70,9 @@ function ensureLayout() {
   ensureDir(subdir('modules'));
   ensureDir(downloadsDir());
   ensureDir(logsDir());
+  ensureDir(cacheDir());
+  ensureDir(subdir('cache', 'mods'));
+  ensureDir(subdir('cache', 'records'));
 }
 
 module.exports = {

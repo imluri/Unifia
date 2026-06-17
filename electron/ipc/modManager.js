@@ -3,7 +3,7 @@ const path = require('path');
 const extract = require('extract-zip');
 const { store } = require('../store');
 const { httpFetch } = require('../util');
-const { modsDir, modCacheDir, downloadsDir, ensureDir } = require('../paths');
+const { modsDir, modCacheDir, downloadsDir, ensureDir, subdir } = require('../paths');
 const thunderstore = require('./thunderstore');
 const profiles = require('./profiles');
 const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
@@ -157,6 +157,9 @@ async function stageVersion(gameId, fullName, versionData, onProgress) {
 
   await extract(zipPath, { dir: target });
   try { fs.unlinkSync(zipPath); } catch { /* temp cleanup */ }
+  
+  // Record the cache entry
+  recordCacheEntry(fullName, versionData.version_number);
 }
 
 // Install a mod + its dependencies into staging, recording state.
@@ -310,7 +313,7 @@ function deployMods(gameId, installPath) {
 
     if (!m.enabled) { changed = true; continue; }
 
-    const staging = path.join(presetDir(gameId), fullName);
+    const staging = modCacheDir(fullName, m.version);
     if (!fs.existsSync(staging)) { changed = true; continue; }
 
     const recordRel = [];
@@ -379,6 +382,292 @@ function setModLoadOrder(gameId, orderedFullNames) {
   return { gameId, reordered: orderedFullNames.length };
 }
 
+// ============================================================================
+// CACHE MANAGEMENT & RECORDS SYSTEM
+// ============================================================================
+
+// Get the records directory for cache metadata
+function cacheRecordsDir() {
+  return subdir('cache', 'records');
+}
+
+// Record metadata for a cached mod version. Returns the path to the record.
+function recordCacheEntry(fullName, version, metadata = {}) {
+  ensureDir(path.join(cacheRecordsDir(), fullName));
+  const recordPath = path.join(cacheRecordsDir(), fullName, `${version}.json`);
+  const record = {
+    fullName,
+    version,
+    cached_at: new Date().toISOString(),
+    size: 0,
+    file_count: 0,
+    ...metadata,
+  };
+  
+  // Calculate cache size and file count
+  const cacheDir = modCacheDir(fullName, version);
+  if (fs.existsSync(cacheDir)) {
+    function calculateStats(dir) {
+      let size = 0, count = 0;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const [s, c] = calculateStats(fullPath);
+          size += s;
+          count += c;
+        } else {
+          const stat = fs.statSync(fullPath);
+          size += stat.size;
+          count++;
+        }
+      }
+      return [size, count];
+    }
+    const [sz, cnt] = calculateStats(cacheDir);
+    record.size = sz;
+    record.file_count = cnt;
+  }
+  
+  fs.writeFileSync(recordPath, JSON.stringify(record, null, 2));
+  return recordPath;
+}
+
+// Load a cache record for a mod version
+function getCacheRecord(fullName, version) {
+  const recordPath = path.join(cacheRecordsDir(), fullName, `${version}.json`);
+  if (fs.existsSync(recordPath)) {
+    return JSON.parse(fs.readFileSync(recordPath, 'utf8'));
+  }
+  return null;
+}
+
+// List all cached versions for a mod
+function listCachedVersions(fullName) {
+  const modsRecordsDir = path.join(cacheRecordsDir(), fullName);
+  if (!fs.existsSync(modsRecordsDir)) return [];
+  
+  return fs.readdirSync(modsRecordsDir)
+    .filter(f => f.endsWith('.json'))
+    .map(f => f.replace('.json', ''))
+    .map(version => getCacheRecord(fullName, version))
+    .filter(Boolean);
+}
+
+// Validate cache entry integrity (check if files exist)
+function validateCacheEntry(fullName, version) {
+  const cacheDir = modCacheDir(fullName, version);
+  const record = getCacheRecord(fullName, version);
+  
+  if (!fs.existsSync(cacheDir) || !fs.readdirSync(cacheDir).length) {
+    return { valid: false, reason: 'Cache directory empty or missing', fullName, version };
+  }
+  
+  if (!record) {
+    return { valid: false, reason: 'No record found', fullName, version };
+  }
+  
+  return { valid: true, fullName, version, cached_at: record.cached_at, size: record.size };
+}
+
+// Validate and repair cache: remove orphaned records or cache dirs
+function validateCache() {
+  const results = { checked: 0, repaired: 0, errors: [] };
+  const recordsDir = cacheRecordsDir();
+  
+  if (!fs.existsSync(recordsDir)) return results;
+  
+  // Check each recorded entry
+  for (const fullNameDir of fs.readdirSync(recordsDir, { withFileTypes: true })) {
+    if (!fullNameDir.isDirectory()) continue;
+    
+    for (const recordFile of fs.readdirSync(path.join(recordsDir, fullNameDir.name))) {
+      if (!recordFile.endsWith('.json')) continue;
+      
+      const version = recordFile.replace('.json', '');
+      const validation = validateCacheEntry(fullNameDir.name, version);
+      results.checked++;
+      
+      if (!validation.valid) {
+        // Remove orphaned record
+        try {
+          fs.unlinkSync(path.join(recordsDir, fullNameDir.name, recordFile));
+          results.repaired++;
+        } catch (err) {
+          results.errors.push(`Failed to remove orphaned record: ${fullNameDir.name}/${version}`);
+        }
+      }
+    }
+  }
+  
+  return results;
+}
+
+// Get cache statistics
+function getCacheStats() {
+  const recordsDir = cacheRecordsDir();
+  let totalSize = 0;
+  let totalMods = 0;
+  let totalVersions = 0;
+  
+  if (!fs.existsSync(recordsDir)) {
+    return { totalSize, totalMods, totalVersions };
+  }
+  
+  for (const fullNameDir of fs.readdirSync(recordsDir, { withFileTypes: true })) {
+    if (!fullNameDir.isDirectory()) continue;
+    totalMods++;
+    
+    const recordsPath = path.join(recordsDir, fullNameDir.name);
+    for (const recordFile of fs.readdirSync(recordsPath)) {
+      if (!recordFile.endsWith('.json')) continue;
+      totalVersions++;
+      
+      const version = recordFile.replace('.json', '');
+      const record = getCacheRecord(fullNameDir.name, version);
+      if (record) totalSize += record.size || 0;
+    }
+  }
+  
+  return { totalSize, totalMods, totalVersions };
+}
+
+// ============================================================================
+// MIGRATION & STAGING COMPATIBILITY
+// ============================================================================
+
+// Migrate existing staging folders to cache (one-time operation)
+async function migratePresetsToCache(onProgress) {
+  const results = { migrated: 0, skipped: 0, errors: [] };
+  const gamesDir = path.dirname(path.dirname(presetDir('dummy')));
+  
+  if (!fs.existsSync(gamesDir)) return results;
+  
+  try {
+    // Scan all games
+    for (const gameDir of fs.readdirSync(gamesDir, { withFileTypes: true })) {
+      if (!gameDir.isDirectory()) continue;
+      
+      const gamePath = path.join(gamesDir, gameDir.name);
+      
+      // Scan all presets for this game
+      for (const presetDir of fs.readdirSync(gamePath, { withFileTypes: true })) {
+        if (!presetDir.isDirectory() || presetDir.name.startsWith('.')) continue;
+        
+        const presetPath = path.join(gamePath, presetDir.name);
+        
+        // Scan all mods in this preset
+        for (const modDir of fs.readdirSync(presetPath, { withFileTypes: true })) {
+          if (!modDir.isDirectory() || modDir.name.startsWith('.')) continue;
+          
+          const modPath = path.join(presetPath, modDir.name);
+          const fullName = modDir.name;
+          
+          // Try to infer version from metadata or assume latest
+          let version = 'unknown';
+          const metadataPath = path.join(modPath, 'manifest.json');
+          if (fs.existsSync(metadataPath)) {
+            try {
+              const manifest = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+              version = manifest.version_number || version;
+            } catch { /* ignore */ }
+          }
+          
+          const cacheDir = modCacheDir(fullName, version);
+          
+          // Skip if already cached
+          if (isCached(cacheDir)) {
+            results.skipped++;
+            continue;
+          }
+          
+          // Move to cache
+          try {
+            ensureDir(path.dirname(cacheDir));
+            fs.renameSync(modPath, cacheDir);
+            recordCacheEntry(fullName, version);
+            results.migrated++;
+            
+            if (onProgress) {
+              onProgress({ migrated: results.migrated, skipped: results.skipped });
+            }
+          } catch (err) {
+            results.errors.push(`Failed to migrate ${fullName}/${version}: ${err.message}`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    results.errors.push(`Migration error: ${err.message}`);
+  }
+  
+  return results;
+}
+
+// ============================================================================
+// ENHANCED DEPLOYMENT WITH VALIDATION
+// ============================================================================
+
+// Deploy mods with cache validation (enhanced deployMods)
+function deployModsWithValidation(gameId, installPath) {
+  const state = JSON.parse(JSON.stringify(modsState(gameId)));
+  let changed = false;
+  const deploymentLog = [];
+
+  for (const [fullName, m] of Object.entries(state)) {
+    // Remove whatever this mod previously deployed.
+    for (const rel of m.deployedFiles || []) {
+      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
+    }
+    m.deployedFiles = [];
+
+    if (!m.enabled) { 
+      deploymentLog.push({ fullName, status: 'skipped', reason: 'disabled' });
+      changed = true; 
+      continue; 
+    }
+
+    const cacheDir = modCacheDir(fullName, m.version);
+    if (!fs.existsSync(cacheDir) || !fs.readdirSync(cacheDir).length) { 
+      deploymentLog.push({ fullName, status: 'failed', reason: 'cache missing' });
+      changed = true; 
+      continue; 
+    }
+
+    // Validate cache before deploying
+    const validation = validateCacheEntry(fullName, m.version);
+    if (!validation.valid) {
+      deploymentLog.push({ fullName, status: 'failed', reason: `cache invalid: ${validation.reason}` });
+      changed = true;
+      continue;
+    }
+
+    const recordRel = [];
+    try {
+      if (deployTarget(fullName) === 'root') {
+        const inner = fs.readdirSync(cacheDir, { withFileTypes: true })
+          .find((e) => e.isDirectory() && /bepinexpack/i.test(e.name));
+        const from = inner ? path.join(cacheDir, inner.name) : cacheDir;
+        copyDirInto(from, installPath, recordRel, installPath);
+      } else {
+        const dest = path.join(installPath, 'BepInEx', 'plugins', fullName);
+        copyDirInto(cacheDir, dest, recordRel, installPath);
+      }
+      m.deployedFiles = recordRel;
+      deploymentLog.push({ fullName, status: 'deployed', files: recordRel.length });
+    } catch (err) {
+      deploymentLog.push({ fullName, status: 'failed', reason: err.message });
+    }
+    changed = true;
+  }
+
+  if (changed) saveModsState(gameId, state);
+  return { 
+    gameId, 
+    deployed: Object.values(state).filter((m) => m.enabled).length,
+    log: deploymentLog 
+  };
+}
+
 module.exports = {
   fetchModList,
   getDiscoverGames,
@@ -400,5 +689,14 @@ module.exports = {
   modsState,
   saveModsState,
   deployMods,
+  deployModsWithValidation,
   hasEnabledBepInExPack,
+  // Cache management
+  recordCacheEntry,
+  getCacheRecord,
+  listCachedVersions,
+  validateCacheEntry,
+  validateCache,
+  getCacheStats,
+  migratePresetsToCache,
 };
