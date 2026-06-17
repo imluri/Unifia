@@ -12,11 +12,9 @@ import TitleBar from './components/TitleBar.jsx';
 import Toaster from './components/Toaster.jsx';
 import UpdateBanner from './components/UpdateBanner.jsx';
 import Icon from './components/Icon.jsx';
-import logo from './assets/unifia_logo.png';
 
 const NAV = [
   { id: 'home', label: 'Home', icon: 'house' },
-  { id: 'modules', label: 'Modules', icon: 'package' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'about', label: 'About', icon: 'info' },
 ];
@@ -57,11 +55,7 @@ function MainLayout() {
       <div className="flex min-h-0 flex-1">
         {/* Sidebar */}
         <nav className="flex w-52 shrink-0 flex-col border-r border-border-subtle bg-sidebar">
-          <div className="px-4 py-4">
-            {/* Full width, but crop the square logo's vertical whitespace. */}
-            <img src={logo} alt="Unifia" className="h-16 w-full rounded object-cover" />
-          </div>
-          <ul className="flex-1 space-y-1 px-3">
+          <ul className="flex-1 flex flex-col justify-center space-y-1 px-3">
             {NAV.map((item) => {
               const active = page === item.id;
               return (
