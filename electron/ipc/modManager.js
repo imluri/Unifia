@@ -3,7 +3,7 @@ const path = require('path');
 const extract = require('extract-zip');
 const { store } = require('../store');
 const { httpFetch } = require('../util');
-const { modsDir, downloadsDir, ensureDir } = require('../paths');
+const { modsDir, modCacheDir, downloadsDir, ensureDir } = require('../paths');
 const thunderstore = require('./thunderstore');
 const profiles = require('./profiles');
 const { resolveInstallSet, deployTarget, hasBepInExPack } = require('./modResolver');
@@ -107,9 +107,21 @@ async function fetchModListForCommunity(community, opts) {
   return aggregateMods(getProviders(), { thunderstoreCommunity: community }, opts || {});
 }
 
-// Download one version zip to a temp file, extract into its staging folder.
+// A cache target counts as present only if it exists AND is non-empty (an empty
+// dir from an interrupted extract is treated as a miss so we re-download).
+function isCached(dir) {
+  try { return fs.existsSync(dir) && fs.readdirSync(dir).length > 0; }
+  catch { return false; }
+}
+
+// Download one version zip and extract it into the global cache (once per
+// fullName@version). A cache hit short-circuits — no network.
 async function stageVersion(gameId, fullName, versionData, onProgress) {
-  const target = path.join(presetDir(gameId), fullName);
+  const target = modCacheDir(fullName, versionData.version_number);
+  if (isCached(target)) {
+    if (onProgress) onProgress({ percent: 100, bytesReceived: 0, totalBytes: 0, cached: true });
+    return;
+  }
   fs.rmSync(target, { recursive: true, force: true });
   ensureDir(target);
 
