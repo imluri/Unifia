@@ -1,31 +1,24 @@
 import React from 'react';
-import ModuleCard from '../components/ModuleCard.jsx';
-import { useAppStore } from '../store/useAppStore.js';
 
-// The module manager page. Lists every supported module source as a card; the
-// card handles its own fetch/install/uninstall lifecycle.
 export default function Modules() {
-  const sources = useAppStore((s) => s.moduleSources);
-  const dataDir = useAppStore((s) => s.dataDir);
-
   return (
     <div>
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-neutral-100">Modules</h1>
         <p className="text-sm text-neutral-500">
-          External tools are downloaded on demand from their official sources — nothing is bundled.
+          The module system has been disabled. BepInEx is now exclusively installed via Thunderstore mods.
         </p>
       </div>
 
-      <div className="space-y-5">
-        {sources.map((src) => (
-          <ModuleCard key={src.id} moduleId={src.id} label={src.label} />
-        ))}
+      <div className="rounded-lg border border-yellow-900/50 bg-yellow-900/20 p-6 text-center text-sm text-yellow-300">
+        <p className="mb-3">To use BepInEx with your games, install the BepInExPack mod from Thunderstore.</p>
+        <button
+          onClick={() => window.unifia.openExternal('https://thunderstore.io/')}
+          className="rounded bg-accent px-3 py-1.5 text-accent-contrast hover:opacity-90"
+        >
+          Visit Thunderstore
+        </button>
       </div>
-
-      <p className="mt-6 text-xs text-neutral-600">
-        Installed to: <span className="font-mono">{dataDir}/modules</span>
-      </p>
     </div>
   );
 }

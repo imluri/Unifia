@@ -68,10 +68,8 @@ function matchProfile(game) {
     }
   }
 
-  // No explicit entry — derive sensible defaults from the engine backend so the
-  // mod at least picks the right module flavour.
-  const module = game.unityBackend === 'il2cpp' ? 'bepinex_il2cpp' : 'bepinex_mono';
-  return resolveProfile({ base, entryProfile: { game: game.name, module }, analyzerOverride, recipeProfile });
+  // No explicit entry — use base profile without module defaults (BepInEx now via Thunderstore mods).
+  return resolveProfile({ base, entryProfile: {}, analyzerOverride, recipeProfile });
 }
 
 // Resolve the effective Photon AppId onto a profile. Precedence (most specific

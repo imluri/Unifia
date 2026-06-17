@@ -12,7 +12,6 @@
     "supportsNativeLobby": false,
     "connectionMode": "cloud-region",
     "region": "eu",
-    "module": "bepinex_mono",
     "thunderstoreCommunity": "repo",
     "photonAppVersion": "unifia-repo-cp1",
     "photonAppId": "",

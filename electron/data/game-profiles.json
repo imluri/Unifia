@@ -8,7 +8,6 @@
     "supportsNativeLobby": false,
     "connectionMode": "cloud-region",
     "region": "eu",
-    "module": "bepinex_mono",
     "thunderstoreCommunity": ""
   },
   "games": [
@@ -22,7 +21,6 @@
         "supportsNativeLobby": false,
         "connectionMode": "cloud-region",
         "region": "eu",
-        "module": "bepinex_mono",
         "thunderstoreCommunity": "repo"
       }
     }

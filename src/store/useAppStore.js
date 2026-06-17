@@ -328,16 +328,17 @@ export const useAppStore = create((set, get) => ({
       ]);
       
       // Validate installed mods and clean up any missing ones
+      let finalInstalledMods = installed;
       if (!notInstalled) {
         const validation = await api.validateInstalledMods(game.id);
         if (validation.missing.length > 0) {
           console.warn(`Cleaned up ${validation.missing.length} missing mods:`, validation.missing);
           // Refresh installed mods after cleanup
-          installed = await api.getInstalledMods(game.id);
+          finalInstalledMods = await api.getInstalledMods(game.id);
         }
       }
       
-      set({ modList: packages, modHubs: hubs, installedMods: installed, bepInExOnDisk, modLoadOrder: loadOrder });
+      set({ modList: packages, modHubs: hubs, installedMods: finalInstalledMods, bepInExOnDisk, modLoadOrder: loadOrder });
       // Connector status powers the Installed-tab pinned row (installed games only).
       if (!notInstalled) get().refreshConnector(game.id);
       if (!notInstalled) get().loadPresets(game.id);
@@ -406,6 +407,23 @@ export const useAppStore = create((set, get) => ({
     } catch {
       /* keep the existing list on a transient failure */
     }
+  },
+  // Install updates for all mods that have newer versions. Sequentially
+  // installs each update to avoid overwhelming the network or the game folder.
+  async updateAllMods(gameId) {
+    const updates = get().modUpdates || [];
+    if (!updates.length) return;
+    for (const u of updates) {
+      try {
+        // u: { fullName, current, latest }
+        await get().installMod(gameId, u.fullName, u.latest);
+      } catch (err) {
+        console.error('Failed to update', u.fullName, err);
+        get().pushToast({ type: 'error', message: `Update failed for ${u.fullName}: ${err.message || err}` });
+      }
+    }
+    // Refresh the update list after completing updates
+    await get().refreshModUpdates(gameId);
   },
   async setModEnabled(gameId, fullName, enabled) {
     await api.setModEnabled(gameId, fullName, enabled);

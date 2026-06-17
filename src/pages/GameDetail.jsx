@@ -8,7 +8,6 @@ import ConnectorBadge from '../components/ConnectorBadge.jsx';
 import MultiplayerTab from './MultiplayerTab.jsx';
 import PresetBar from '../components/PresetBar.jsx';
 import InviteModal from '../components/InviteModal.jsx';
-import GameModuleModal from '../components/GameModuleModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import { useAppStore } from '../store/useAppStore.js';
 
@@ -24,6 +23,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const modList = useAppStore((s) => s.modList);
   const installedMods = useAppStore((s) => s.installedMods);
   const modProgress = useAppStore((s) => s.modProgress);
+  const modUpdates = useAppStore((s) => s.modUpdates);
   const bepInExOnDisk = useAppStore((s) => s.bepInExOnDisk);
   const connector = useAppStore((s) => s.connector[game?.id]);
   const installMod = useAppStore((s) => s.installMod);
@@ -32,6 +32,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const updateGamePath = useAppStore((s) => s.updateGamePath);
   const refreshBepInEx = useAppStore((s) => s.refreshBepInEx);
   const pushToast = useAppStore((s) => s.pushToast);
+  const updateAllMods = useAppStore((s) => s.updateAllMods);
   const renameGame = useAppStore((s) => s.renameGame);
   const liveGame = useAppStore((s) => s.games.find((g) => g.id === game.id)) || game;
 
@@ -42,7 +43,6 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [category, setCategory] = useState('');
   const [hub, setHub] = useState('');
   const [page, setPage] = useState(1);
-  const [moduleOpen, setModuleOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -214,7 +214,6 @@ export default function GameDetail({ game, onBack, goToModules }) {
         <>
           <div className="mb-5 flex items-center gap-2">
             <Button variant="primary" icon="play" onClick={handleLaunch}>Launch</Button>
-            <Button icon="package" onClick={() => setModuleOpen(true)}>Module</Button>
             {game.manual && (
               <Button icon="folder-open" onClick={handleChangeFolder} title="Point this game at a different install folder">
                 Change folder
@@ -340,6 +339,23 @@ export default function GameDetail({ game, onBack, goToModules }) {
                       placeholder="Search installed mods…"
                       className="min-w-[180px] flex-1 rounded bg-neutral-800 px-3 py-2 text-sm outline-none"
                     />
+                    {modUpdates && modUpdates.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateAllMods(game.id);
+                              pushToast({ type: 'success', message: 'All updates installed.' });
+                            } catch (err) {
+                              pushToast({ type: 'error', message: `Update all failed: ${err.message || err}` });
+                            }
+                          }}
+                          className="shrink-0 rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:opacity-90 active:scale-95"
+                        >
+                          Update All ({modUpdates.length})
+                        </button>
+                      </div>
+                    )}
                     <div className="flex shrink-0 overflow-hidden rounded ring-1 ring-border-default">
                       {['all', 'enabled', 'disabled'].map((f) => (
                         <button
@@ -437,11 +453,6 @@ export default function GameDetail({ game, onBack, goToModules }) {
         </>
       )}
 
-      <GameModuleModal
-        game={moduleOpen ? game : null}
-        onClose={() => setModuleOpen(false)}
-        onManageAll={goToModules}
-      />
       <InviteModal game={game} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );

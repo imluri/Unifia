@@ -20,10 +20,8 @@ const store = new Store({
       dataDir: '', // empty => default under userData
       steamGridDbKey: '', // user-supplied free SteamGridDB API key
     },
-    modules: {
-      bepinex_mono: { installed: [], active: null },
-      bepinex_il2cpp: { installed: [], active: null },
-    },
+    // Module system disabled — BepInEx now managed via Thunderstore mods
+    modules: {},
     // gameProfiles[gameId] = { activeModule, moduleVersion, photonConfig }
     gameProfiles: {},
     // artCache[gameId] = { banner, icon, hero, fetchedAt }

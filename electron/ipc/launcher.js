@@ -29,21 +29,9 @@ function copyDir(src, dest) {
 
 // Copy the active BepInEx module for a game into its install directory. Returns
 // the version copied, or null when the game has no active module.
+// [DEPRECATED] — Module system removed; BepInEx now via Thunderstore mods only.
 function deployModule(game) {
-  const profiles = store.get('gameProfiles') || {};
-  const profile = profiles[game.id];
-  if (!profile || !profile.activeModule || !profile.moduleVersion) {
-    return null; // no module linked to this game
-  }
-
-  const source = moduleDir(profile.activeModule, profile.moduleVersion);
-  if (!fs.existsSync(source)) {
-    throw new Error(
-      `Active module ${profile.activeModule} ${profile.moduleVersion} is not installed on disk`
-    );
-  }
-  copyDir(source, game.installPath);
-  return { module: profile.activeModule, version: profile.moduleVersion };
+  return null; // Module deployment disabled
 }
 
 function isRunning(gameId) {
@@ -64,11 +52,6 @@ function launchGame(gameId, { args = [] } = {}) {
   if (!fs.existsSync(game.executablePath)) {
     throw new Error(`Executable not found: ${game.executablePath}`);
   }
-
-  // If a Thunderstore BepInExPack is staged+enabled, it provides the loader
-  // (deployMods copies it to the game root below) — skip the GitHub BepInEx copy
-  // so we never install two overlapping loaders.
-  const deployed = modManager.hasEnabledBepInExPack(game.id) ? null : deployModule(game);
 
   // Deploy enabled Thunderstore mods into the game (cache → game folder) with validation.
   try {
@@ -119,7 +102,7 @@ function launchGame(gameId, { args = [] } = {}) {
   child.unref();
   runningProcesses.set(gameId, child);
 
-  return { gameId, pid: child.pid, deployedModule: deployed };
+  return { gameId, pid: child.pid };
 }
 
 function killGame(gameId) {

@@ -114,6 +114,18 @@ function isCached(dir) {
   catch { return false; }
 }
 
+function presetStagingDir(gameId, fullName) {
+  return path.join(presetDir(gameId), fullName);
+}
+
+function stagePresetMod(gameId, fullName, version) {
+  const cacheDir = modCacheDir(fullName, version);
+  const stagingDir = presetStagingDir(gameId, fullName);
+  fs.rmSync(stagingDir, { recursive: true, force: true });
+  ensureDir(path.dirname(stagingDir));
+  copyDirInto(cacheDir, stagingDir, [], stagingDir);
+}
+
 // Download one version zip and extract it into the global cache (once per
 // fullName@version). A cache hit short-circuits — no network.
 async function stageVersion(gameId, fullName, versionData, onProgress) {
@@ -180,6 +192,7 @@ async function installMod(gameId, fullName, version, onProgress) {
     await stageVersion(gameId, item.fullName, item.versionData, (p) =>
       onProgress && onProgress({ fullName: item.fullName, ...p })
     );
+    stagePresetMod(gameId, item.fullName, item.versionData.version_number);
     state[item.fullName] = {
       version: item.version,
       enabled: true,
@@ -294,11 +307,43 @@ function copyDirInto(src, dest, recordRel, baseDest) {
   }
 }
 
+function removeEmptyParents(targetPath, baseDir) {
+  let dir = path.dirname(path.resolve(targetPath));
+  const base = path.resolve(baseDir);
+  while (path.relative(base, dir) !== '' && !path.relative(base, dir).startsWith('..')) {
+    try {
+      if (fs.readdirSync(dir).length === 0) {
+        fs.rmdirSync(dir);
+        dir = path.dirname(dir);
+        continue;
+      }
+    } catch {
+      break;
+    }
+    break;
+  }
+}
+
+function cleanPluginsFolder(installPath) {
+  const pluginsDir = path.join(installPath, 'BepInEx', 'plugins');
+  if (!fs.existsSync(pluginsDir)) return;
+
+  for (const entry of fs.readdirSync(pluginsDir, { withFileTypes: true })) {
+    const childPath = path.join(pluginsDir, entry.name);
+    if (entry.isFile() && entry.name === 'Unifia.Pun.dll') continue;
+    try {
+      fs.rmSync(childPath, { recursive: true, force: true });
+    } catch { /* ignore cleanup failures */ }
+  }
+}
+
 // Reconcile the game folder against staged mod state: remove previously-deployed
 // files, then copy enabled mods in (BepInExPack → root, others → plugins).
 // Additive and file-tracked, so it never touches files it didn't place (e.g.
 // Unifia.Pun.dll installed by pluginManager).
 function deployMods(gameId, installPath) {
+  cleanPluginsFolder(installPath);
+
   // Deep copy so the per-mod `deployedFiles` mutations below can never touch the
   // persisted state until we explicitly saveModsState after the loop succeeds.
   const state = JSON.parse(JSON.stringify(modsState(gameId)));
@@ -307,14 +352,25 @@ function deployMods(gameId, installPath) {
   for (const [fullName, m] of Object.entries(state)) {
     // Remove whatever this mod previously deployed.
     for (const rel of m.deployedFiles || []) {
-      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
+      try {
+        const filePath = path.join(installPath, rel);
+        fs.rmSync(filePath, { force: true });
+        removeEmptyParents(filePath, installPath);
+      } catch { /* gone */ }
     }
     m.deployedFiles = [];
 
     if (!m.enabled) { changed = true; continue; }
 
-    const staging = modCacheDir(fullName, m.version);
-    if (!fs.existsSync(staging)) { changed = true; continue; }
+    const staging = presetStagingDir(gameId, fullName);
+    if (!fs.existsSync(staging) || !fs.readdirSync(staging).length) {
+      const cacheDir = modCacheDir(fullName, m.version);
+      if (!fs.existsSync(cacheDir) || !fs.readdirSync(cacheDir).length) {
+        changed = true;
+        continue;
+      }
+      stagePresetMod(gameId, fullName, m.version);
+    }
 
     const recordRel = [];
     if (deployTarget(fullName) === 'root') {
@@ -609,6 +665,8 @@ async function migratePresetsToCache(onProgress) {
 
 // Deploy mods with cache validation (enhanced deployMods)
 function deployModsWithValidation(gameId, installPath) {
+  cleanPluginsFolder(installPath);
+
   const state = JSON.parse(JSON.stringify(modsState(gameId)));
   let changed = false;
   const deploymentLog = [];
@@ -616,7 +674,11 @@ function deployModsWithValidation(gameId, installPath) {
   for (const [fullName, m] of Object.entries(state)) {
     // Remove whatever this mod previously deployed.
     for (const rel of m.deployedFiles || []) {
-      try { fs.rmSync(path.join(installPath, rel), { force: true }); } catch { /* gone */ }
+      try {
+        const filePath = path.join(installPath, rel);
+        fs.rmSync(filePath, { force: true });
+        removeEmptyParents(filePath, installPath);
+      } catch { /* gone */ }
     }
     m.deployedFiles = [];
 
@@ -626,31 +688,27 @@ function deployModsWithValidation(gameId, installPath) {
       continue; 
     }
 
-    const cacheDir = modCacheDir(fullName, m.version);
-    if (!fs.existsSync(cacheDir) || !fs.readdirSync(cacheDir).length) { 
-      deploymentLog.push({ fullName, status: 'failed', reason: 'cache missing' });
-      changed = true; 
-      continue; 
-    }
-
-    // Validate cache before deploying
-    const validation = validateCacheEntry(fullName, m.version);
-    if (!validation.valid) {
-      deploymentLog.push({ fullName, status: 'failed', reason: `cache invalid: ${validation.reason}` });
-      changed = true;
-      continue;
+    const stagingDir = presetStagingDir(gameId, fullName);
+    if (!fs.existsSync(stagingDir) || !fs.readdirSync(stagingDir).length) {
+      const cacheDir = modCacheDir(fullName, m.version);
+      if (!fs.existsSync(cacheDir) || !fs.readdirSync(cacheDir).length) {
+        deploymentLog.push({ fullName, status: 'failed', reason: 'cache missing' });
+        changed = true;
+        continue;
+      }
+      stagePresetMod(gameId, fullName, m.version);
     }
 
     const recordRel = [];
     try {
       if (deployTarget(fullName) === 'root') {
-        const inner = fs.readdirSync(cacheDir, { withFileTypes: true })
+        const inner = fs.readdirSync(stagingDir, { withFileTypes: true })
           .find((e) => e.isDirectory() && /bepinexpack/i.test(e.name));
-        const from = inner ? path.join(cacheDir, inner.name) : cacheDir;
+        const from = inner ? path.join(stagingDir, inner.name) : stagingDir;
         copyDirInto(from, installPath, recordRel, installPath);
       } else {
         const dest = path.join(installPath, 'BepInEx', 'plugins', fullName);
-        copyDirInto(cacheDir, dest, recordRel, installPath);
+        copyDirInto(stagingDir, dest, recordRel, installPath);
       }
       m.deployedFiles = recordRel;
       deploymentLog.push({ fullName, status: 'deployed', files: recordRel.length });

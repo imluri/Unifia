@@ -23,6 +23,7 @@ const NAV = [
 // `word-fade` class crossfades it in opposite the loader fading out.
 function MainLayout() {
   const error = useAppStore((s) => s.error);
+  
   const [page, setPage] = useState('home');
   const [detailGame, setDetailGame] = useState(null);
 
@@ -52,6 +53,7 @@ function MainLayout() {
   return (
     <div className="word-fade flex h-screen flex-col bg-app text-neutral-200">
       <TitleBar />
+      
       <div className="flex min-h-0 flex-1">
         {/* Sidebar */}
         <nav className="flex w-52 shrink-0 flex-col border-r border-border-subtle bg-sidebar">
