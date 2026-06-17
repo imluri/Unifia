@@ -58,6 +58,12 @@ function cacheDir() {
   return subdir('cache');
 }
 
+// Global, version-keyed mod cache: a downloaded mod version lives here once and
+// is copied into each game's BepInEx/plugins on deploy. Shared across presets+games.
+function modCacheDir(fullName, version) {
+  return subdir('cache', 'mods', safeSegment(fullName), safeSegment(String(version || '')));
+}
+
 // Create the baseline folder layout once on startup.
 function ensureLayout() {
   ensureDir(getDataDir());
@@ -74,6 +80,7 @@ module.exports = {
   logsDir,
   modsDir,
   cacheDir,
+  modCacheDir,
   ensureDir,
   ensureLayout,
 };
