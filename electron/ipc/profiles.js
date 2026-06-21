@@ -55,21 +55,22 @@ function matchProfile(game) {
   const analyzerOverride = storedOverride(game);
   const recipeProfile = recipeStore.recipeFor(game) || {};
 
+  // No explicit registry entry → entryProfile stays {} (BepInEx now via Thunderstore mods).
+  let entryProfile = {};
   for (const entry of reg.games || []) {
     const m = entry.match || {};
     if (m.steamAppId && game.steamAppId && String(game.steamAppId) === String(m.steamAppId)) {
-      return resolveProfile({ base, entryProfile: entry.profile, analyzerOverride, recipeProfile });
+      entryProfile = entry.profile; break;
     }
     if (m.namePattern && game.name) {
       const re = safeRegex(m.namePattern);
-      if (re && re.test(game.name)) {
-        return resolveProfile({ base, entryProfile: entry.profile, analyzerOverride, recipeProfile });
-      }
+      if (re && re.test(game.name)) { entryProfile = entry.profile; break; }
     }
   }
 
-  // No explicit entry — use base profile without module defaults (BepInEx now via Thunderstore mods).
-  return resolveProfile({ base, entryProfile: {}, analyzerOverride, recipeProfile });
+  const merged = resolveProfile({ base, entryProfile, analyzerOverride, recipeProfile });
+  const gameStored = (store.get('gameProfiles') || {})[game.id];
+  return applyCommunityOverride(merged, gameStored);
 }
 
 // Resolve the effective Photon AppId onto a profile. Precedence (most specific
@@ -94,4 +95,13 @@ function applyAppIdOverride(profile, settings, gameStored) {
   return out;
 }
 
-module.exports = { matchProfile, resolveProfile, applyAppIdOverride, loadRegistry };
+// Overlay the per-game Thunderstore community (auto-resolved or user-picked,
+// stored in gameProfiles[id].thunderstoreCommunity) as the final precedence
+// layer, so unregistered games get a source and users can correct a mismatch.
+function applyCommunityOverride(profile, gameStored) {
+  const c = (((gameStored || {}).thunderstoreCommunity) || '').trim();
+  if (!c) return profile;
+  return { ...profile, thunderstoreCommunity: c };
+}
+
+module.exports = { matchProfile, resolveProfile, applyAppIdOverride, applyCommunityOverride, loadRegistry };

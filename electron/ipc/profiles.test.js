@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { resolveProfile } = require('./profiles');
+const { resolveProfile, applyCommunityOverride } = require('./profiles');
 
 test('resolveProfile applies precedence: base < entry < analyzer < recipe', () => {
   const out = resolveProfile({
@@ -73,4 +73,16 @@ test('applyAppIdOverride: settings global override beats per-game invite', () =>
     { photonAppIdOverride: 'global' },
     { photonAppId: 'pergame' });
   assert.strictEqual(out.photonAppId, 'global');
+});
+
+test('applyCommunityOverride overlays a per-game community when set', () => {
+  const out = applyCommunityOverride({ thunderstoreCommunity: 'repo', region: 'eu' }, { thunderstoreCommunity: 'lethal-company' });
+  assert.strictEqual(out.thunderstoreCommunity, 'lethal-company');
+  assert.strictEqual(out.region, 'eu');
+});
+
+test('applyCommunityOverride leaves the profile untouched when no per-game value', () => {
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, {}).thunderstoreCommunity, 'repo');
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, undefined).thunderstoreCommunity, 'repo');
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, { thunderstoreCommunity: '  ' }).thunderstoreCommunity, 'repo');
 });

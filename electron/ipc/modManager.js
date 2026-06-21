@@ -12,6 +12,7 @@ const { getDependents: getDependentsFromGraph, detectConflicts, computeDependent
 const { getProviders } = require('./modHubs');
 const { filterDiscover } = require('./modHubs/discover');
 const presetStore = require('./presetStore');
+const communityResolver = require('./communityResolver');
 
 function findGame(gameId) {
   const game = (store.get('games') || []).find((g) => g.id === gameId);
@@ -87,6 +88,12 @@ function gameHasBepInEx(gameId) {
 // { packages, hubs } — each mod carries its hub tag.
 async function fetchModList(gameId, opts) {
   const game = findGame(gameId);
+  // Unregistered games (e.g. a fresh Steam import) have no community yet —
+  // resolve+persist it from the game name before aggregating. Non-fatal.
+  if (!communityFor(game)) {
+    try { await communityResolver.resolveCommunity(game); } catch { /* no source */ }
+  }
+  // resolveCommunity persisted to the store synchronously; matchProfile re-reads it.
   const profile = profiles.matchProfile(game);
   return aggregateMods(getProviders(), profile, opts || {});
 }
@@ -105,6 +112,23 @@ async function getDiscoverGames(opts) {
 // aren't in the store).
 async function fetchModListForCommunity(community, opts) {
   return aggregateMods(getProviders(), { thunderstoreCommunity: community }, opts || {});
+}
+
+// Manual override: set (or clear, with an empty string) the per-game
+// Thunderstore community when auto-resolution is wrong or finds nothing.
+function setGameCommunity(gameId, community) {
+  const gp = store.get('gameProfiles') || {};
+  const entry = { ...(gp[gameId] || {}) };
+  const c = (community || '').trim();
+  if (c) entry.thunderstoreCommunity = c;
+  else delete entry.thunderstoreCommunity;
+  store.set('gameProfiles', { ...gp, [gameId]: entry });
+  return { gameId, community: c || null };
+}
+
+// Full Thunderstore community list (unfiltered) for the manual picker.
+async function listCommunities(opts) {
+  return thunderstore.fetchCommunities(opts || {});
 }
 
 // A cache target counts as present only if it exists AND is non-empty (an empty
@@ -730,6 +754,8 @@ module.exports = {
   fetchModList,
   getDiscoverGames,
   fetchModListForCommunity,
+  setGameCommunity,
+  listCommunities,
   getInstalledMods,
   validateInstalledMods,
   gameHasBepInEx,

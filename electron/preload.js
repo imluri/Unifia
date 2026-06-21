@@ -93,6 +93,8 @@ contextBridge.exposeInMainWorld('unifia', {
   fetchDiscoverGames: (opts) => invoke('unifia:fetchDiscoverGames', opts),
   fetchModListForCommunity: (community, opts) =>
     invoke('unifia:fetchModListForCommunity', community, opts),
+  setGameCommunity: (gameId, community) => invoke('unifia:setGameCommunity', gameId, community),
+  listCommunities: (opts) => invoke('unifia:listCommunities', opts),
   openExternal: (url) => invoke('unifia:openExternal', url),
 
   // Unifia connector plugin (per-game)
