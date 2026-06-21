@@ -55,6 +55,7 @@ function matchProfile(game) {
   const analyzerOverride = storedOverride(game);
   const recipeProfile = recipeStore.recipeFor(game) || {};
 
+  // No explicit registry entry → entryProfile stays {} (BepInEx now via Thunderstore mods).
   let entryProfile = {};
   for (const entry of reg.games || []) {
     const m = entry.match || {};
