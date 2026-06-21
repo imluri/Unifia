@@ -74,3 +74,17 @@ test('applyAppIdOverride: settings global override beats per-game invite', () =>
     { photonAppId: 'pergame' });
   assert.strictEqual(out.photonAppId, 'global');
 });
+
+const { applyCommunityOverride } = require('./profiles');
+
+test('applyCommunityOverride overlays a per-game community when set', () => {
+  const out = applyCommunityOverride({ thunderstoreCommunity: 'repo', region: 'eu' }, { thunderstoreCommunity: 'lethal-company' });
+  assert.strictEqual(out.thunderstoreCommunity, 'lethal-company');
+  assert.strictEqual(out.region, 'eu');
+});
+
+test('applyCommunityOverride leaves the profile untouched when no per-game value', () => {
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, {}).thunderstoreCommunity, 'repo');
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, undefined).thunderstoreCommunity, 'repo');
+  assert.strictEqual(applyCommunityOverride({ thunderstoreCommunity: 'repo' }, { thunderstoreCommunity: '  ' }).thunderstoreCommunity, 'repo');
+});
