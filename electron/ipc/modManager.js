@@ -93,6 +93,7 @@ async function fetchModList(gameId, opts) {
   if (!communityFor(game)) {
     try { await communityResolver.resolveCommunity(game); } catch { /* no source */ }
   }
+  // resolveCommunity persisted to the store synchronously; matchProfile re-reads it.
   const profile = profiles.matchProfile(game);
   return aggregateMods(getProviders(), profile, opts || {});
 }

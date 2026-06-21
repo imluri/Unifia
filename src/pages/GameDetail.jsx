@@ -73,11 +73,11 @@ export default function GameDetail({ game, onBack, goToModules }) {
   }, [game.id]);
 
   useEffect(() => {
-    if (modHubs.length !== 0 || modsLoading) return;
+    if (modHubs.length !== 0 || modsLoading || communities.length > 0) return;
     let active = true;
     window.unifia.listCommunities().then((list) => { if (active) setCommunities(list || []); }).catch(() => {});
     return () => { active = false; };
-  }, [modHubs.length, modsLoading, game.id]);
+  }, [modHubs.length, modsLoading, game.id, communities.length]);
 
   if (!game) return null;
 
