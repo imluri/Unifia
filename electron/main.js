@@ -161,6 +161,10 @@ function registerIpc() {
   handle('unifia:fetchModListForCommunity', (community, opts) =>
     modManager.fetchModListForCommunity(community, opts || {})
   );
+  handle('unifia:setGameCommunity', (gameId, community) =>
+    modManager.setGameCommunity(gameId, community)
+  );
+  handle('unifia:listCommunities', (opts) => modManager.listCommunities(opts || {}));
 
   // --- Cache Management ---
   handle('unifia:validateCache', () => modManager.validateCache());
