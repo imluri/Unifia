@@ -77,7 +77,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
     let active = true;
     window.unifia.listCommunities().then((list) => { if (active) setCommunities(list || []); }).catch(() => {});
     return () => { active = false; };
-  }, [modHubs.length, modsLoading]);
+  }, [modHubs.length, modsLoading, game.id]);
 
   if (!game) return null;
 
@@ -283,6 +283,11 @@ export default function GameDetail({ game, onBack, goToModules }) {
             className="mt-4 w-full max-w-sm rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500"
           />
           <div className="mx-auto mt-3 max-h-60 max-w-sm overflow-y-auto text-left">
+            {communities.length === 0 && (
+              <p className="px-3 py-2 text-sm text-neutral-500">
+                Couldn&apos;t load the Thunderstore community list. Check your connection and reopen this game.
+              </p>
+            )}
             {communities
               .filter((c) => !communityQuery
                 || `${c.name} ${c.identifier}`.toLowerCase().includes(communityQuery.toLowerCase()))
