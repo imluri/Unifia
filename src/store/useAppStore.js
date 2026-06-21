@@ -356,6 +356,12 @@ export const useAppStore = create((set, get) => ({
       set({ modsLoading: false });
     }
   },
+  // Set (or clear) a game's Thunderstore community manually, then reload its
+  // mods so the new source takes effect.
+  async setGameCommunity(game, community) {
+    await api.setGameCommunity(game.id, community);
+    await get().loadMods(game, { refresh: true });
+  },
   async loadDiscover({ refresh = false } = {}) {
     set({ discoverLoading: true, discoverError: null });
     try {

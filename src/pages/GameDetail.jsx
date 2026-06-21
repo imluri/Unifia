@@ -35,6 +35,7 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const pushToast = useAppStore((s) => s.pushToast);
   const updateAllMods = useAppStore((s) => s.updateAllMods);
   const renameGame = useAppStore((s) => s.renameGame);
+  const setGameCommunityAction = useAppStore((s) => s.setGameCommunity);
   const liveGame = useAppStore((s) => s.games.find((g) => g.id === game.id)) || game;
 
   const [tab, setTab] = useState(game?.installed === false ? 'browse' : 'installed');
@@ -51,6 +52,9 @@ export default function GameDetail({ game, onBack, goToModules }) {
   const [recipeMeta, setRecipeMeta] = useState(null);
   const [installedQuery, setInstalledQuery] = useState('');
   const [installedFilter, setInstalledFilter] = useState('all'); // all | enabled | disabled
+  const [communities, setCommunities] = useState([]);
+  const [communityQuery, setCommunityQuery] = useState('');
+  const [settingCommunity, setSettingCommunity] = useState(false);
 
   useEffect(() => {
     if (game) loadMods(game);
@@ -67,6 +71,13 @@ export default function GameDetail({ game, onBack, goToModules }) {
     window.unifia.getRecipeFor(game.id).then((m) => { if (active) setRecipeMeta(m); }).catch(() => {});
     return () => { active = false; };
   }, [game.id]);
+
+  useEffect(() => {
+    if (modHubs.length !== 0 || modsLoading) return;
+    let active = true;
+    window.unifia.listCommunities().then((list) => { if (active) setCommunities(list || []); }).catch(() => {});
+    return () => { active = false; };
+  }, [modHubs.length, modsLoading]);
 
   if (!game) return null;
 
@@ -259,8 +270,39 @@ export default function GameDetail({ game, onBack, goToModules }) {
           </div>
         </div>
       ) : modHubs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 p-10 text-center text-neutral-500">
-          This game has no supported mod source, so there&apos;s nothing to browse.
+        <div className="rounded-lg border border-dashed border-white/10 p-10 text-center">
+          <p className="text-neutral-500">
+            Unifia couldn&apos;t match this game to a Thunderstore community automatically.
+            Pick one to load its mods:
+          </p>
+          <input
+            type="text"
+            value={communityQuery}
+            onChange={(e) => setCommunityQuery(e.target.value)}
+            placeholder="Search communities…"
+            className="mt-4 w-full max-w-sm rounded bg-neutral-800 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-500"
+          />
+          <div className="mx-auto mt-3 max-h-60 max-w-sm overflow-y-auto text-left">
+            {communities
+              .filter((c) => !communityQuery
+                || `${c.name} ${c.identifier}`.toLowerCase().includes(communityQuery.toLowerCase()))
+              .slice(0, 50)
+              .map((c) => (
+                <button
+                  key={c.identifier}
+                  disabled={settingCommunity}
+                  onClick={async () => {
+                    setSettingCommunity(true);
+                    try { await setGameCommunityAction(liveGame, c.identifier); }
+                    finally { setSettingCommunity(false); }
+                  }}
+                  className="flex w-full items-center justify-between rounded px-3 py-2 text-sm text-neutral-200 hover:bg-surface-hover disabled:opacity-50"
+                >
+                  <span>{c.name}</span>
+                  <span className="text-xs text-neutral-500">{c.identifier}</span>
+                </button>
+              ))}
+          </div>
         </div>
       ) : (
         <>
