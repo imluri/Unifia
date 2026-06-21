@@ -45,4 +45,15 @@ for (const fn of existingFunctions) {
 }
 
 console.log('\nAll existing functions still properly exported');
+
+const newFunctions = ['setGameCommunity', 'listCommunities'];
+for (const fn of newFunctions) {
+  if (typeof modManager[fn] === 'function') {
+    console.log(`✔ ${fn} is exported`);
+  } else {
+    console.log(`✗ ${fn} is NOT exported`);
+    process.exit(1);
+  }
+}
+
 console.log('✔ Export verification complete');
